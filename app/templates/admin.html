@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        body { font-family: system-ui; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; font-size: 0.9em; }
+        th { background-color: #f4f4f4; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .logout { margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <h1>Attendance Records</h1>
+    <div class="logout"><a href="/admin/logout">Logout</a></div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Timestamp (UTC)</th>
+                <th>Site</th>
+                <th>Event Type</th>
+                <th>Device ID</th>
+                <th>Geo (Lat, Lon)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rec in records %}
+            <tr>
+                <td>{{ rec.id }}</td>
+                <td>{{ rec.timestamp_utc.strftime('%Y-%m-%d %H:%M:%S') if rec.timestamp_utc else 'N/A' }}</td>
+                <td>{{ rec.site }}</td>
+                <td>{{ rec.event_type }}</td>
+                <td>{{ rec.device_local_id or 'N/A' }}</td>
+                <td>
+                    {% if rec.geo_lat and rec.geo_lon %}
+                        {{ "%.4f"|format(rec.geo_lat) }}, {{ "%.4f"|format(rec.geo_lon) }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" style="text-align: center; font-style: italic;">No records found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
