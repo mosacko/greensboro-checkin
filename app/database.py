@@ -11,7 +11,17 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-engine = create_engine(settings.database_url, future=True, pool_pre_ping=True)
+# Get the URL from settings
+db_url = settings.database_url
+
+# Normalize 'postgres://' to 'postgresql://'
+if db_url and db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+# ---------------------
+
+# Use the corrected URL to create the engine
+engine = create_engine(db_url, future=True, pool_pre_ping=True) # Use db_url here
+
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 Base = declarative_base()
 
