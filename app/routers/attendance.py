@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.templating import Jinja2Templates
+from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse # Make sure RedirectResponse is imported
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional, Dict
@@ -32,6 +33,13 @@ class FinalizePayload(BaseModel):
 @router.get("/scan", response_class=HTMLResponse)
 def scan(request: Request, db: Session = Depends(get_db), site: Optional[str] = None):
     
+    # --- ADD SSO CHECK ---
+    if settings.sso_required:
+        user = request.session.get("user")
+        if not user:
+            # If not logged in, redirect to the login page
+            return RedirectResponse(url="/login")
+            
     site_code = site or settings.default_site
     if site_code not in settings.sites:
         site_code = settings.default_site
