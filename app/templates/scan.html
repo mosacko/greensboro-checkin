@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Scan</title>
+</head>
+<body>
+  <h1>Check In</h1>
+  <form id="attendance-form">
+    <input type="hidden" id="token" value="{{ token }}">
+    <input type="hidden" id="site" value="{{ site }}">
+    <input type="hidden" id="device_local_id">
+    <input type="hidden" id="user_agent">
+    <input type="hidden" id="geo_lat">
+    <input type="hidden" id="geo_lon">
+    <p>Site: <strong>{{ site }}</strong></p>
+    <p><button type="submit" id="submit-button">Submit</button></p>
+    <p id="status-message" style="color: green;"></p>
+  </form>
+
+<script>
+function initializeForm(){
+  try{
+    let id = localStorage.getItem('qr_device_id');
+    if(!id){
+      id = (crypto.randomUUID ? crypto.randomUUID()
+          : Math.random().toString(36).slice(2) + Date.now().toString(36));
+      localStorage.setItem('qr_device_id', id);
+    }
+    document.getElementById('device_local_id').value = id;
+  }catch(e){
+    document.getElementById('device_local_id').value =
+      Math.random().toString(36).slice(2) + Date.now().toString(36);
+  }
+  document.getElementById('user_agent').value = navigator.userAgent;
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(
+      (pos)=>{
+        document.getElementById('geo_lat').value = pos.coords.latitude;
+        document.getElementById('geo_lon').value = pos.coords.longitude;
+      },
+      ()=>{}, {enableHighAccuracy:true, timeout:5000}
+    );
+  }
+}
+
+document.getElementById('attendance-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  const statusMessage = document.getElementById('status-message');
+  const payload = {
+    token: document.getElementById('token').value,
+    site: document.getElementById('site').value,
+    deviceId: document.getElementById('device_local_id').value,
+    userAgent: document.getElementById('user_agent').value,
+    geo: {
+      lat: document.getElementById('geo_lat').value ? parseFloat(document.getElementById('geo_lat').value) : null,
+      lon: document.getElementById('geo_lon').value ? parseFloat(document.getElementById('geo_lon').value) : null
+    },
+    nameText: null,
+    signatureDataUrl: null
+  };
+  fetch('/finalize', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)})
+    .then(r=>{ if(!r.ok) throw new Error('bad'); return r.json(); })
+    .then(()=>{ statusMessage.textContent='Saved!'; window.location.href='/'; })
+    .catch(()=>{ statusMessage.textContent='Failed.'; statusMessage.style.color='red'; });
+});
+
+initializeForm();
+</script>
+</body></html>

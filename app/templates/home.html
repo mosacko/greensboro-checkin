@@ -1,0 +1,8 @@
+<!doctype html><html><body>
+<h1>Greensboro Check-in</h1>
+<ul>
+  {% for code, name in sites.items() %}
+    <li><a href="/scan?site={{ code }}">Test Scan ({{name}})</a></li>
+  {% endfor %}
+</ul>
+</body></html>
