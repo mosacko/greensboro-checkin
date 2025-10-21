@@ -1,22 +1,24 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login</title>
-    <style>
-        body { font-family: system-ui; display: grid; place-items: center; min-height: 50vh; }
-        form { border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
-    </style>
-</head>
-<body>
-    <form action="/admin/login" method="post">
-        <h2>Admin Login</h2>
-        <div style="margin-bottom: 10px;">
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
+{% extends "base.html" %}
+
+{% block title %}Admin Login{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4">Admin Login</h2>
+                <form action="/admin/login" method="post">
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password:</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </div>
+                </form>
+            </div>
         </div>
-        <button type="submit">Login</button>
-    </form>
-</body>
-</html>
+    </div>
+</div>
+{% endblock %}
