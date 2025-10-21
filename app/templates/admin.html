@@ -3,13 +3,13 @@
 {% block title %}Admin Dashboard{% endblock %}
 
 {% block content %}
-    <h1 class="mb-3">Attendance Records</h1>
+    <h1 class="mb-3">Office Check-ins Tracker</h1>
     <div class="logout mb-4"><a href="/admin/logout">Logout</a></div>
 
     {# --- CARD 1: Accordion --- #}
     <div class="card mb-4">
         <div class="card-header">
-            <h2>Check-ins by Day</h2>
+            <h2>Daily Check-ins</h2>
         </div>
         <div class="card-body">
             {# --- ACCORDION START --- #}
@@ -70,7 +70,7 @@
     {# --- CARD 2: Chart --- #}
     <div class="card mb-4">
         <div class="card-header">
-            <h2>Daily Check-ins (Last 7 Days)</h2>
+            <h2>Weekly Check-ins (Last 7 Days)</h2>
         </div>
         <div class="card-body">
             <canvas id="dailyCheckinsChart"></canvas>
