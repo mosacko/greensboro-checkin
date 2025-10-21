@@ -136,10 +136,29 @@ def admin_logout(response: Response):
     response.delete_cookie(key="admin_auth")
     return response
 
+# Inside app/main.py
+
 @app.get("/admin", response_class=HTMLResponse)
 def admin_dashboard(request: Request, db: Session = Depends(get_db)):
+    """Shows the main admin dashboard with all attendance records."""
+
     if request.cookies.get("admin_auth") != "super_secret_token":
         return RedirectResponse(url="/admin/login")
+
+    # Fetch records
     records = db.query(Attendance).order_by(Attendance.timestamp_utc.desc()).all()
-    return templates.TemplateResponse("admin.html", {"request": request, "records": records})
+
+    # --- ADD LOGGING HERE ---
+    print(f"--- /admin ---")
+    if records:
+        print(f"First record fetched: ID={records[0].id}, Name={records[0].user_name}") 
+        print(f"Number of records fetched: {len(records)}")
+    else:
+        print("No records found in database.")
+    # ------------------------
+
+    return templates.TemplateResponse(
+        "admin.html", 
+        {"request": request, "records": records}
+    )
 # -------------------------------------------------------------
