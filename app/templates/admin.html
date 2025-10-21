@@ -99,7 +99,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for rec in records_by_date | sum(attribute='value', start=[]) | sort(attribute='timestamp_utc', reverse=true) %} {# Re-flatten and sort all records if needed #}
+                        {% for rec in all_records %}
                         <tr>
                             <td>{{ rec.id }}</td>
                             <td>{{ rec.timestamp_utc.strftime('%Y-%m-%d %H:%M:%S') if rec.timestamp_utc else 'N/A' }}</td>

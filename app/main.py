@@ -191,6 +191,7 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
             # Pass the grouped data and sorted dates to the template
             "records_by_date": records_by_date, 
             "sorted_dates": sorted_dates 
+            "all_records": all_records
         }
     )
 # -------------------------------------------------------------
