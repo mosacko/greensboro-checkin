@@ -75,6 +75,13 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     email = user_info.get("email") or user_info.get("preferred_username") or user_info.get("upn") or ""
     name = user_info.get("name") or (email.split("@")[0] if email else "Unknown")
 
+    # --- ADD LOGGING HERE ---
+    print(f"--- /auth/callback ---")
+    print(f"User Info received from Azure: {user_info}")
+    print(f"Extracted Email: {email}")
+    print(f"Extracted Name: {name}")
+    # ---
+
     if not email:
         return PlainTextResponse("No email found in token/claims", status_code=400)
 
@@ -85,7 +92,10 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
             return PlainTextResponse(f"Unauthorized domain: {domain}", status_code=403)
 
     # Store user info in the session
+    session_data = {"email": email, "name": name} # Store in a variable first
     request.session["user"] = {"email": email, "name": name}
+    print(f"Data saved to session: {session_data}") # ADD LOGGING
+    print(f"Session content after save: {request.session.get('user')}") # ADD LOGGING
 
     # Upsert employee record
     emp = db.query(Employee).filter(Employee.email == email).first()

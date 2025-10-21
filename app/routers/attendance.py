@@ -33,12 +33,20 @@ class FinalizePayload(BaseModel):
 @router.get("/scan", response_class=HTMLResponse)
 def scan(request: Request, db: Session = Depends(get_db), site: Optional[str] = None):
     
+    user_name = None # Default name to None
+    print(f"--- /scan Start ---") # ADD LOGGING
+
     # --- ADD SSO CHECK ---
     if settings.sso_required:
-        user = request.session.get("user")
-        if not user:
-            # If not logged in, redirect to the login page
-            return RedirectResponse(url="/login")
+        user_session_data = request.session.get("user") # Read session data
+        print(f"Session data read in /scan: {user_session_data}") # ADD LOGGING
+        if not user_session_data:
+            print("User not in session, redirecting to /login") # ADD LOGGING
+            return RedirectResponse(url="/login") 
+        
+        # Get user name from session
+        user_name = user_session_data.get("name") 
+        print(f"User Name extracted from session: {user_name}") # ADD LOGGING
             
     site_code = site or settings.default_site
     if site_code not in settings.sites:

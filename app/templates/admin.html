@@ -36,7 +36,7 @@
                 <td>{{ rec.timestamp_utc.strftime('%Y-%m-%d %H:%M:%S') if rec.timestamp_utc else 'N/A' }}</td>
                 <td>{{ rec.site }}</td>
                 <td>{{ rec.event_type }}</td>
-                <td>{{ rec.name or 'N/A' }}</td>
+                <td>{{ rec.user_name or 'N/A' }}</td>
                 <td>{{ rec.device_local_id or 'N/A' }}</td>
                 <td>
                     {% if rec.geo_lat and rec.geo_lon %}
