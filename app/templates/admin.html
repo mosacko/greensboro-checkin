@@ -24,6 +24,7 @@
                 <th>Timestamp (UTC)</th>
                 <th>Site</th>
                 <th>Event Type</th>
+                <th>User Name</th> {/* <-- ADD THIS HEADER */}
                 <th>Device ID</th>
                 <th>Geo (Lat, Lon)</th>
             </tr>
@@ -35,6 +36,7 @@
                 <td>{{ rec.timestamp_utc.strftime('%Y-%m-%d %H:%M:%S') if rec.timestamp_utc else 'N/A' }}</td>
                 <td>{{ rec.site }}</td>
                 <td>{{ rec.event_type }}</td>
+                <td>{{ rec.user_name or 'N/A' }}</td> {/* <-- ADD THIS DATA CELL */}
                 <td>{{ rec.device_local_id or 'N/A' }}</td>
                 <td>
                     {% if rec.geo_lat and rec.geo_lon %}
@@ -46,7 +48,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="6" style="text-align: center; font-style: italic;">No records found.</td>
+                <td colspan="7" style="text-align: center; font-style: italic;">No records found.</td> {/* <-- UPDATE COLSPAN TO 7 */}
             </tr>
             {% endfor %}
         </tbody>
