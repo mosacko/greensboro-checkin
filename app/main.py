@@ -123,37 +123,61 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     db.commit() # Commit employee upsert first
 
     # --- AUTOMATIC CHECK-IN ---
-    site_code = request.session.pop("intended_site", settings.default_site) # Get site from session
-    print(f"Attempting check-in for site: {site_code}, User: {name}") # Add logging
+    site_code = request.session.pop("intended_site", settings.default_site) 
+    # Get name and email reliably from session
+    user_session_data = request.session.get("user", {}) 
+    name = user_session_data.get("name", "Unknown")
+    email = user_session_data.get("email") # Get email
+    print(f"Attempting check-in for site: {site_code}, User: {email or name}") 
+
+    # --- Calculate current time and date in EST ---
+    now_utc = datetime.now(timezone.utc)
+    try:
+        est_zone = ZoneInfo("America/New_York") 
+        now_est = now_utc.astimezone(est_zone)
+        local_date_str = now_est.strftime("%Y-%m-%d") 
+    except Exception as e:
+        print(f"Timezone conversion error: {e}. Falling back to UTC date.")
+        local_date_str = now_utc.strftime("%Y-%m-%d")
+    # ---------------------------------------------
+
+    # Check if already checked in today before creating new record
+    if email: # Only check if we have an email
+        try:
+            existing_checkin = db.query(Attendance).filter(
+                Attendance.local_date == local_date_str,
+                Attendance.user_email == email, # <-- Check by email
+                Attendance.event_type == "check_in",
+                Attendance.is_valid == True
+            ).first()
+            if existing_checkin:
+                 print(f"User {email} already checked in today via callback ({local_date_str}).")
+                 return RedirectResponse(url="/already-checked-in") 
+        except Exception as e:
+            print(f"Error checking existing check-in during callback: {e}")
+            # Proceed if check fails? For now, yes.
 
     # Create the Attendance record directly
-    # Note: We don't need device ID or Geo here unless captured differently
     new_checkin = Attendance(
         site=site_code,
         event_type="check_in",
         is_valid=True,
-        source="sso_callback", # Indicate source
-        timestamp_utc=datetime.now(timezone.utc),
-        local_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-        user_name=name # Save the user's name
+        source="sso_callback", 
+        timestamp_utc=now_utc, 
+        local_date=local_date_str, 
+        user_name=name, 
+        user_email=email # <-- Save the email
     )
     db.add(new_checkin)
     try:
         db.commit()
-        print(f"Check-in successful for {name} at {site_code}") # Add logging
-        # Redirect to a new success page instead of '/'
+        print(f"Check-in successful for {email or name} at {site_code} on {local_date_str} (EST)") 
         return RedirectResponse(url="/checkin-success") 
     except Exception as e:
         db.rollback()
-        print(f"ERROR during check-in commit: {e}") # Add logging
+        print(f"ERROR during check-in commit: {e}") 
         return PlainTextResponse(f"Login successful, but check-in failed: {e}", status_code=500)
-
-# --- ADD SUCCESS PAGE ROUTE ---
-@app.get("/checkin-success", response_class=HTMLResponse)
-def checkin_success(request: Request):
-    """Displays a simple success message after check-in."""
-    return templates.TemplateResponse("checkin_success.html", {"request": request})
-# ----------------------------
+    # -------------------------
 
 @app.get("/logout")
 def logout(request: Request):
@@ -162,6 +186,11 @@ def logout(request: Request):
     return RedirectResponse(url="/", status_code=303)
 
 # ------------------------
+
+@app.get("/already-checked-in", response_class=HTMLResponse)
+def already_checked_in(request: Request):
+    """Displays a message that the user already checked in today."""
+    return templates.TemplateResponse("already_checked_in.html", {"request": request})
 
 # --- Admin Authentication (Keep your existing admin routes) ---
 @app.get("/admin/login", response_class=HTMLResponse)

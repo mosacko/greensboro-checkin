@@ -33,6 +33,7 @@ class Attendance(Base):
     event_type = Column(String(20), nullable=False, index=True) 
 
     user_name = Column(String(200), nullable=True) # To store the name from SSO
+    user_email = Column(String(320), nullable=True, index=True) # Add email, index for faster lookups
     
     source = Column(String(32), nullable=False, default="qr")
     user_agent = Column(Text)
