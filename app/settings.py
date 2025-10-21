@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     oidc_client_secret: str = ""    # Your Client Secret **Value** (Not the ID)
     oidc_redirect_uri: str = "https://attendance.sebridgeinspection.com/auth/callback"     # The callback URL (e.g., https://your-app/auth/callback)
     sso_required: bool = True       # Set to True to enable SSO
-    allowed_domains: List[str] = ["sebridgeinspection.com","wsp.com"] # Optional: List of allowed email domains
+    allowed_domains: List[str] = ["sebridgeinspection.com","wsp.com","southeastbridge.onmicrosoft.com"] # Optional: List of allowed email domains
     # -----------------------------
 
     sites: Dict[str, str] = {"greensboro":"Greensboro","remote":"Remote"}
