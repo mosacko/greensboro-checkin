@@ -18,6 +18,8 @@ from .routers import attendance as attendance_router
 from .database import get_db
 from .models import Attendance # Keep this import
 
+import os
+
 app = FastAPI(title="Greensboro Check-in")
 
 # --- ADD SESSION MIDDLEWARE (Must be before routers) ---
@@ -26,7 +28,9 @@ app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
 
 # Remove or comment out the StaticFiles line if you don't have an app/static folder
 # app.mount("/static", StaticFiles(directory="app/static"), name="static") 
-templates = Jinja2Templates(directory="app/templates")
+# Build path relative to the current file (main.py)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 # --- ADD OAUTH SETUP ---
 oauth = OAuth()
@@ -71,6 +75,13 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     email = user_info.get("email") or user_info.get("preferred_username") or user_info.get("upn") or ""
     name = user_info.get("name") or (email.split("@")[0] if email else "Unknown")
 
+    # --- ADD LOGGING HERE ---
+    print(f"--- /auth/callback ---")
+    print(f"User Info received from Azure: {user_info}")
+    print(f"Extracted Email: {email}")
+    print(f"Extracted Name: {name}")
+    # ---
+
     if not email:
         return PlainTextResponse("No email found in token/claims", status_code=400)
 
@@ -81,6 +92,7 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
             return PlainTextResponse(f"Unauthorized domain: {domain}", status_code=403)
 
     # Store user info in the session
+    session_data = {"email": email, "name": name} # Store in a variable first
     request.session["user"] = {"email": email, "name": name}
 
     # Upsert employee record
@@ -122,10 +134,29 @@ def admin_logout(response: Response):
     response.delete_cookie(key="admin_auth")
     return response
 
+# Inside app/main.py
+
 @app.get("/admin", response_class=HTMLResponse)
 def admin_dashboard(request: Request, db: Session = Depends(get_db)):
+    """Shows the main admin dashboard with all attendance records."""
+
     if request.cookies.get("admin_auth") != "super_secret_token":
         return RedirectResponse(url="/admin/login")
+
+    # Fetch records
     records = db.query(Attendance).order_by(Attendance.timestamp_utc.desc()).all()
-    return templates.TemplateResponse("admin.html", {"request": request, "records": records})
+
+    # --- ADD LOGGING HERE ---
+    print(f"--- /admin ---")
+    if records:
+        print(f"First record fetched: ID={records[0].id}, Name={records[0].user_name}") 
+        print(f"Number of records fetched: {len(records)}")
+    else:
+        print("No records found in database.")
+    # ------------------------
+
+    return templates.TemplateResponse(
+        "admin.html", 
+        {"request": request, "records": records}
+    )
 # -------------------------------------------------------------

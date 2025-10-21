@@ -35,12 +35,16 @@ class FinalizePayload(BaseModel):
 @router.get("/scan", response_class=HTMLResponse)
 def scan(request: Request, db: Session = Depends(get_db), site: Optional[str] = None):
     
+    user_name = None # Default name to None
+
     # --- ADD SSO CHECK ---
     if settings.sso_required:
-        user = request.session.get("user")
-        if not user:
-            # If not logged in, redirect to the login page
-            return RedirectResponse(url="/login")
+        user_session_data = request.session.get("user") # Read session data
+        if not user_session_data:
+            return RedirectResponse(url="/login") 
+        
+        # Get user name from session
+        user_name = user_session_data.get("name") 
             
     site_code = site or settings.default_site
     if site_code not in settings.sites:
@@ -54,8 +58,15 @@ def scan(request: Request, db: Session = Depends(get_db), site: Optional[str] = 
         source="qr",
         timestamp_utc=datetime.now(timezone.utc),
         local_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        user_name=user_name
     )
     db.add(rec)
+
+    # --- ADD LOGGING RIGHT BEFORE COMMIT ---
+    print(f"--- Just before commit in /scan ---")
+    print(f"Object to be saved: ID={rec.id}, Site={rec.site}, Name={rec.user_name}")
+    # ----------------------------------------
+
     db.commit()
     db.refresh(rec)
 
