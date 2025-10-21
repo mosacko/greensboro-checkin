@@ -60,6 +60,7 @@ def scan(request: Request, db: Session = Depends(get_db), site: Optional[str] = 
         source="qr",
         timestamp_utc=datetime.now(timezone.utc),
         local_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        user_name=user_name
     )
     db.add(rec)
 
