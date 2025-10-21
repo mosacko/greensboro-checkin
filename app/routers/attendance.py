@@ -62,6 +62,12 @@ def scan(request: Request, db: Session = Depends(get_db), site: Optional[str] = 
         local_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
     )
     db.add(rec)
+
+    # --- ADD LOGGING RIGHT BEFORE COMMIT ---
+    print(f"--- Just before commit in /scan ---")
+    print(f"Object to be saved: ID={rec.id}, Site={rec.site}, Name={rec.user_name}")
+    # ----------------------------------------
+
     db.commit()
     db.refresh(rec)
 
