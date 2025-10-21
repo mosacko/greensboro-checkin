@@ -27,7 +27,13 @@ import os
 app = FastAPI(title="Greensboro Check-in")
 
 # --- ADD SESSION MIDDLEWARE (Must be before routers) ---
-app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
+SESSION_TIMEOUT_SECONDS = 8 * 60 * 60 # 8 hours in seconds
+
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=settings.secret_key, 
+    max_age=SESSION_TIMEOUT_SECONDS # Cookie expires after 8 hours
+)
 # --------------------------------------------------------
 
 # Remove or comment out the StaticFiles line if you don't have an app/static folder
