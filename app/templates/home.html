@@ -1,8 +1,24 @@
-<!doctype html><html><body>
-<h1>Greensboro Check-in</h1>
-<ul>
-  {% for code, name in sites.items() %}
-    <li><a href="/scan?site={{ code }}">Test Scan ({{name}})</a></li>
-  {% endfor %}
-</ul>
-</body></html>
+<!doctype html>
+<html>
+<body>
+    <h1>Greensboro Check-in</h1>
+
+    {% if user %}
+        <p>Welcome, {{ user.name }}! (<a href="/logout">Logout</a>)</p>
+    {% else %}
+        <p><a href="/login">Login</a></p>
+    {% endif %}
+
+    <hr>
+    <p>Scan Links:</p>
+    <ul>
+        {% for code, name in sites.items() %}
+            <li><a href="/scan?site={{ code }}">Scan ({{ name }})</a></li>
+        {% endfor %}
+    </ul>
+
+    <hr>
+    <p><a href="/admin">Admin Area</a></p>
+
+</body>
+</html>
