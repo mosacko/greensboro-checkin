@@ -7,12 +7,6 @@
     <h1 class="mb-3">Attendance Records</h1>
     <div class="logout mb-4"><a href="/admin/logout">Logout</a></div>
 
-    <div class="mb-5 p-3 border rounded">
-        <h2>Daily Check-ins (Last 7 Days)</h2>
-        {# The canvas element MUST exist before the script tries to use it #}
-        <canvas id="dailyCheckinsChart"></canvas> 
-    </div>
-
     <h2>Check-ins by Day</h2>
 
     {# --- ACCORDION START --- #}
@@ -76,6 +70,12 @@
         
     </div>
     {# --- ACCORDION END --- #}
+
+    <div class="mb-5 p-3 border rounded">
+        <h2>Daily Check-ins (Last 7 Days)</h2>
+        {# The canvas element MUST exist before the script tries to use it #}
+        <canvas id="dailyCheckinsChart"></canvas> 
+    </div>
 
     {# --- Part 2: JavaScript Logic --- #}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> {# Include the library #}
