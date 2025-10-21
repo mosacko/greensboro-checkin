@@ -13,50 +13,74 @@
         <canvas id="dailyCheckinsChart"></canvas> 
     </div>
 
-    <h2>All Records</h2>
-    <div class="table-responsive">
-        <table class="table table-striped table-hover table-bordered">
-            <thead class="table-dark">
-                <tr>
-                    <th>ID</th>
-                    <th>Timestamp (UTC)</th>
-                    <th>Site</th>
-                    <th>Event Type</th>
-                    <th>User Name</th>
-                    <th>Device ID</th>
-                    <th>Geo (Lat, Lon)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for rec in records %}
-                <tr>
-                    <td>{{ rec.id }}</td>
-                    <td>{{ rec.timestamp_utc.strftime('%Y-%m-%d %H:%M:%S') if rec.timestamp_utc else 'N/A' }}</td>
-                    <td>{{ rec.site | title }}</td>
-                    <td>{{ rec.event_type }}</td>
-                    <td>{{ rec.user_name or 'N/A' }}</td>
-                    <td>{{ rec.device_local_id or 'N/A' }}</td>
-                    <td>
-                        {% if rec.geo_lat and rec.geo_lon %}
-                            {{ "%.4f"|format(rec.geo_lat) }}, {{ "%.4f"|format(rec.geo_lon) }}
-                        {% else %}
-                            N/A
-                        {% endif %}
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="7" class="text-center fst-italic">No records found.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <h2>Check-ins by Day</h2>
+
+    {# --- ACCORDION START --- #}
+    <div class="accordion" id="attendanceAccordion">
+        
+        {# Check if there are any dates with records #}
+        {% if sorted_dates %}
+            
+            {# Loop through each date (most recent first) #}
+            {% for record_date in sorted_dates %}
+                {% set records_for_day = records_by_date[record_date] %}
+                {% set date_str = record_date.strftime('%Y-%m-%d') %} {# Format date object back to string #}
+                {% set accordion_id = "collapse-" + date_str.replace('-', '') %} {# Unique ID for collapse element #}
+                {% set header_id = "heading-" + date_str.replace('-', '') %} {# Unique ID for header element #}
+                
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="{{ header_id }}">
+                        <button class="accordion-button {% if loop.index > 1 %}collapsed{% endif %}" {# Collapse all but the first #}
+                                type="button" 
+                                data-bs-toggle="collapse" 
+                                data-bs-target="#{{ accordion_id }}" 
+                                aria-expanded="{{ 'true' if loop.first else 'false' }}" 
+                                aria-controls="{{ accordion_id }}">
+                            {{ record_date.strftime('%A, %B %d, %Y') }} - ({{ records_for_day | length }} Check-ins)
+                        </button>
+                    </h2>
+                    <div id="{{ accordion_id }}" 
+                         class="accordion-collapse collapse {% if loop.first %}show{% endif %}" {# Show the first item by default #}
+                         aria-labelledby="{{ header_id }}" 
+                         data-bs-parent="#attendanceAccordion">
+                        <div class="accordion-body">
+                            
+                            {# Simple list of names and times for that day #}
+                            <ul class="list-group">
+                                {% for rec in records_for_day %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>
+                                        <strong>{{ rec.user_name or 'Unknown User' }}</strong> 
+                                        <small class="text-muted ms-2">({{ rec.site | title }})</small>
+                                    </span>
+                                    <span class="badge bg-secondary rounded-pill">
+                                        {{ rec.timestamp_utc.strftime('%H:%M:%S %Z') if rec.timestamp_utc else 'No Time' }}
+                                    </span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            
+                            {# Optional: Add a link to view full details for that day if needed #}
+                            
+                        </div>
+                    </div>
+                </div>
+            {% endfor %} {# End loop through dates #}
+            
+        {% else %}
+            {# If no records were found at all #}
+            <div class="alert alert-info" role="alert">
+                No check-in records found.
+            </div>
+        {% endif %} {# End check for sorted_dates #}
+        
     </div>
+    {# --- ACCORDION END --- #}
 
     {# --- Part 2: JavaScript Logic --- #}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> {# Include the library #}
 
-    <script> {# Your script to create the chart #}
+    <script>
         async function createDailyCheckinsChart() {
             try {
                 const response = await fetch('/api/metrics/daily_checkins_last_week');
@@ -99,4 +123,4 @@
         }
         createDailyCheckinsChart();
     </script>
-{% endblock %} {# Close the content block #}
+{% endblock %}

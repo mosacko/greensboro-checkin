@@ -5,6 +5,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse # Add PlainTextResponse
 from sqlalchemy.orm import Session
+from datetime import date # Import date
+from collections import defaultdict # Import defaultdict
 from starlette.middleware.sessions import SessionMiddleware # Add SessionMiddleware
 
 # --- ADD THESE AUTH IMPORTS ---
@@ -140,25 +142,55 @@ def admin_logout(response: Response):
 
 @app.get("/admin", response_class=HTMLResponse)
 def admin_dashboard(request: Request, db: Session = Depends(get_db)):
-    """Shows the main admin dashboard with all attendance records."""
-
+    """Shows the main admin dashboard with attendance records grouped by date."""
+    
     if request.cookies.get("admin_auth") != "super_secret_token":
         return RedirectResponse(url="/admin/login")
+    
+    # Fetch all valid check-in records, most recent first
+    all_records = db.query(Attendance)\
+                    .filter(Attendance.event_type == "check_in", Attendance.is_valid == True)\
+                    .order_by(Attendance.timestamp_utc.desc())\
+                    .all()
+    
+    # --- Group records by date ---
+    records_by_date = defaultdict(list)
+    for rec in all_records:
+        # Use local_date if available, otherwise derive from timestamp_utc
+        record_date_str = rec.local_date 
+        if not record_date_str and rec.timestamp_utc:
+             # Assuming UTC, adjust if your server/users are in a specific timezone
+            record_date_str = rec.timestamp_utc.strftime('%Y-%m-%d') 
+        
+        if record_date_str:
+            try:
+                # Convert string date to date object for sorting keys later
+                record_date = date.fromisoformat(record_date_str) 
+                records_by_date[record_date].append(rec)
+            except ValueError:
+                # Handle cases where local_date might be invalid format
+                records_by_date["Invalid Date"].append(rec) 
 
-    # Fetch records
-    records = db.query(Attendance).order_by(Attendance.timestamp_utc.desc()).all()
-
-    # --- ADD LOGGING HERE ---
+    # Sort the dates so the most recent day appears first in the accordion
+    sorted_dates = sorted(records_by_date.keys(), reverse=True)
+    # -----------------------------
+    
+    # --- Logging (keep for now) ---
     print(f"--- /admin ---")
-    if records:
-        print(f"First record fetched: ID={records[0].id}, Name={records[0].user_name}") 
-        print(f"Number of records fetched: {len(records)}")
+    if all_records:
+        print(f"Total records fetched: {len(all_records)}")
+        print(f"Data grouped into {len(sorted_dates)} dates.")
     else:
         print("No records found in database.")
-    # ------------------------
-
+    # -----------------------------
+    
     return templates.TemplateResponse(
         "admin.html", 
-        {"request": request, "records": records}
+        {
+            "request": request, 
+            # Pass the grouped data and sorted dates to the template
+            "records_by_date": records_by_date, 
+            "sorted_dates": sorted_dates 
+        }
     )
 # -------------------------------------------------------------
