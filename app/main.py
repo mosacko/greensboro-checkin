@@ -94,8 +94,6 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     # Store user info in the session
     session_data = {"email": email, "name": name} # Store in a variable first
     request.session["user"] = {"email": email, "name": name}
-    print(f"Data saved to session: {session_data}") # ADD LOGGING
-    print(f"Session content after save: {request.session.get('user')}") # ADD LOGGING
 
     # Upsert employee record
     emp = db.query(Employee).filter(Employee.email == email).first()

@@ -11,7 +11,6 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# --- THIS IS THE MISSING FIX ---
 # Get the URL from settings
 db_url = settings.database_url
 
