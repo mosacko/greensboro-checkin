@@ -18,6 +18,8 @@ from .routers import attendance as attendance_router
 from .database import get_db
 from .models import Attendance # Keep this import
 
+import os
+
 app = FastAPI(title="Greensboro Check-in")
 
 # --- ADD SESSION MIDDLEWARE (Must be before routers) ---
@@ -26,7 +28,9 @@ app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
 
 # Remove or comment out the StaticFiles line if you don't have an app/static folder
 # app.mount("/static", StaticFiles(directory="app/static"), name="static") 
-templates = Jinja2Templates(directory="app/templates")
+t# Build path relative to the current file (main.py)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 # --- ADD OAUTH SETUP ---
 oauth = OAuth()
