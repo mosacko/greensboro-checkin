@@ -15,8 +15,9 @@ from .models import Employee # Import Employee model
 
 from .settings import settings
 from .routers import attendance as attendance_router
+from .routers import metrics as metrics_router
 from .database import get_db
-from .models import Attendance # Keep this import
+from .models import Attendance
 
 import os
 
@@ -49,6 +50,7 @@ def home(request: Request):
     return templates.TemplateResponse("home.html", {"request": request, "sites": settings.sites, "user": user})
 
 app.include_router(attendance_router.router, prefix="", tags=["attendance"])
+app.include_router(metrics_router.router, prefix="", tags=["metrics"]) # ADD THIS LINE
 
 # --- ADD SSO ROUTES ---
 
