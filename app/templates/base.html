@@ -11,10 +11,10 @@
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-danger fixed-top"> 
         <div class="container-fluid">
             <a class="navbar-brand" href="/">
-                <img src="/static/wsp-logo.jpg" alt="Logo"> 
+                <img src="/static/placeholder-logo.png" alt="Logo"> 
                 Greensboro Check-in
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,21 +23,17 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     {% if request.session.get('user') %}
-                        <li class="nav-item">
+                        <li class="nav-item d-flex align-items-center"> 
                             <span class="navbar-text me-3">
                                 Welcome, {{ request.session.get('user').name }}!
                             </span>
-                        </li>
-                        <li class="nav-item">
                             <a class="nav-link" href="/logout">Logout</a>
                         </li>
                     {% elif request.cookies.get("admin_auth") %}
-                         <li class="nav-item">
+                        <li class="nav-item d-flex align-items-center"> 
                             <span class="navbar-text me-3">
                                 Admin Logged In
                             </span>
-                        </li>
-                         <li class="nav-item">
                             <a class="nav-link" href="/admin/logout">Admin Logout</a>
                         </li>
                     {% else %}
