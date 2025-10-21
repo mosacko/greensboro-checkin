@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse # Add PlainTextResponse
 from sqlalchemy.orm import Session
 from datetime import date, datetime, timezone # Import date
+from zoneinfo import ZoneInfo
 from collections import defaultdict # Import defaultdict
 from starlette.middleware.sessions import SessionMiddleware # Add SessionMiddleware
 
@@ -186,6 +187,11 @@ def logout(request: Request):
     return RedirectResponse(url="/", status_code=303)
 
 # ------------------------
+
+@app.get("/checkin-success", response_class=HTMLResponse)
+def checkin_success(request: Request):
+    """Displays a simple success message after check-in."""
+    return templates.TemplateResponse("checkin_success.html", {"request": request})
 
 @app.get("/already-checked-in", response_class=HTMLResponse)
 def already_checked_in(request: Request):
