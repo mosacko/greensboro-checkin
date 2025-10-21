@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse # Add PlainTextResponse
 from sqlalchemy.orm import Session
-from datetime import date # Import date
+from datetime import date, datetime, timezone # Import date
 from collections import defaultdict # Import defaultdict
 from starlette.middleware.sessions import SessionMiddleware # Add SessionMiddleware
 
