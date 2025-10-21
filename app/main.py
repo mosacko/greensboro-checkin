@@ -59,6 +59,27 @@ app.include_router(metrics_router.router, prefix="", tags=["metrics"]) # ADD THI
 @app.get("/login")
 async def login(request: Request):
     """Redirects the user to Microsoft's login page."""
+    
+    # --- STORE INTENDED SITE ---
+    # Check if the user came from a /scan URL with a site parameter
+    referer = request.headers.get("referer")
+    intended_site = settings.default_site # Default if not found
+    if referer:
+        try:
+            from urllib.parse import urlparse, parse_qs
+            parsed_url = urlparse(referer)
+            if parsed_url.path == "/scan":
+                query_params = parse_qs(parsed_url.query)
+                site_list = query_params.get("site")
+                if site_list and site_list[0] in settings.sites:
+                    intended_site = site_list[0]
+        except Exception:
+            pass # Keep default site if parsing fails
+            
+    request.session["intended_site"] = intended_site
+    print(f"Stored intended site in session: {intended_site}") # Add logging
+    # --------------------------
+    
     redirect_uri = settings.oidc_redirect_uri or str(request.url_for("auth_callback"))
     return await oauth.azure.authorize_redirect(request, redirect_uri)
 
@@ -79,13 +100,6 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     email = user_info.get("email") or user_info.get("preferred_username") or user_info.get("upn") or ""
     name = user_info.get("name") or (email.split("@")[0] if email else "Unknown")
 
-    # --- ADD LOGGING HERE ---
-    print(f"--- /auth/callback ---")
-    print(f"User Info received from Azure: {user_info}")
-    print(f"Extracted Email: {email}")
-    print(f"Extracted Name: {name}")
-    # ---
-
     if not email:
         return PlainTextResponse("No email found in token/claims", status_code=400)
 
@@ -99,16 +113,47 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     session_data = {"email": email, "name": name} # Store in a variable first
     request.session["user"] = {"email": email, "name": name}
 
-    # Upsert employee record
+    # Upsert employee record (keep this)
     emp = db.query(Employee).filter(Employee.email == email).first()
     if not emp:
         emp = Employee(email=email, display_name=name)
         db.add(emp)
     else: 
-        emp.display_name = name # Update name if needed
-    db.commit()
+        emp.display_name = name
+    db.commit() # Commit employee upsert first
 
-    return RedirectResponse(url="/") # Redirect to homepage
+    # --- AUTOMATIC CHECK-IN ---
+    site_code = request.session.pop("intended_site", settings.default_site) # Get site from session
+    print(f"Attempting check-in for site: {site_code}, User: {name}") # Add logging
+
+    # Create the Attendance record directly
+    # Note: We don't need device ID or Geo here unless captured differently
+    new_checkin = Attendance(
+        site=site_code,
+        event_type="check_in",
+        is_valid=True,
+        source="sso_callback", # Indicate source
+        timestamp_utc=datetime.now(timezone.utc),
+        local_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        user_name=name # Save the user's name
+    )
+    db.add(new_checkin)
+    try:
+        db.commit()
+        print(f"Check-in successful for {name} at {site_code}") # Add logging
+        # Redirect to a new success page instead of '/'
+        return RedirectResponse(url="/checkin-success") 
+    except Exception as e:
+        db.rollback()
+        print(f"ERROR during check-in commit: {e}") # Add logging
+        return PlainTextResponse(f"Login successful, but check-in failed: {e}", status_code=500)
+
+# --- ADD SUCCESS PAGE ROUTE ---
+@app.get("/checkin-success", response_class=HTMLResponse)
+def checkin_success(request: Request):
+    """Displays a simple success message after check-in."""
+    return templates.TemplateResponse("checkin_success.html", {"request": request})
+# ----------------------------
 
 @app.get("/logout")
 def logout(request: Request):

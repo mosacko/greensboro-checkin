@@ -33,71 +33,20 @@ class FinalizePayload(BaseModel):
 # --- Routes ---
 
 @router.get("/scan", response_class=HTMLResponse)
-def scan(request: Request, db: Session = Depends(get_db), site: Optional[str] = None):
-    
-    user_name = None # Default name to None
-
-    # --- ADD SSO CHECK ---
+def scan(request: Request, site: Optional[str] = None):
+    # --- SIMPLIFIED /scan ---
+    # It only checks SSO and redirects if needed. 
+    # The actual check-in happens in /auth/callback.
     if settings.sso_required:
-        user_session_data = request.session.get("user") # Read session data
-        if not user_session_data:
-            return RedirectResponse(url="/login") 
-        
-        # Get user name from session
-        user_name = user_session_data.get("name") 
-            
-    site_code = site or settings.default_site
-    if site_code not in settings.sites:
-        site_code = settings.default_site
-
-    # Create a provisional record. The database will assign the integer PK.
-    rec = Attendance(
-        site=site_code,
-        event_type="check_in",  # Using the new string value
-        is_valid=True,
-        source="qr",
-        timestamp_utc=datetime.now(timezone.utc),
-        local_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-        user_name=user_name
-    )
-    db.add(rec)
-
-    # --- ADD LOGGING RIGHT BEFORE COMMIT ---
-    print(f"--- Just before commit in /scan ---")
-    print(f"Object to be saved: ID={rec.id}, Site={rec.site}, Name={rec.user_name}")
-    # ----------------------------------------
-
-    db.commit()
-    db.refresh(rec)
-
-    # Use the new integer ID as the token
-    token = str(rec.id) 
-
-    return templates.TemplateResponse(
-        "scan.html",
-        {"request": request, "token": token, "site": site_code}
-    )
-
-@router.post("/finalize")
-async def finalize(payload: FinalizePayload, db: Session = Depends(get_db)):
-    try:
-        pk = int(payload.token)
-    except (TypeError, ValueError):
-        raise HTTPException(status_code=400, detail="Invalid token")
-
-    rec = db.get(Attendance, pk)
-    if not rec:
-        raise HTTPException(status_code=404, detail="Token not found")
-
-    # Update the record with data from the form
-    rec.device_local_id = payload.deviceId or rec.device_local_id
-    rec.user_agent = payload.userAgent or rec.user_agent
-
-    if payload.geo:
-        rec.geo_lat = payload.geo.lat
-        rec.geo_lon = payload.geo.lon
+        user = request.session.get("user")
+        if not user:
+            # If not logged in, redirect to login (which stores site & goes to Azure)
+            # Pass site along in case login needs it directly (though session is preferred)
+            return RedirectResponse(url=f"/login?site={site or settings.default_site}") 
     
-    db.add(rec)
-    db.commit()
-    
-    return {"ok": True, "token": payload.token}
+    # If already logged in, maybe show a message or redirect home?
+    # Or redirect straight to success? Let's redirect home for now.
+    # Alternatively, you could just show the success page directly if logged in.
+    print("User already logged in, redirecting home from /scan")
+    return RedirectResponse(url="/") 
+    # --- END SIMPLIFIED ---
