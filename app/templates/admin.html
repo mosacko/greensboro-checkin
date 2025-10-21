@@ -99,7 +99,7 @@
                         {% for rec in all_records %}
                         <tr>
                             <td>{{ rec.id }}</td>
-                            <td>{{ rec.timestamp_utc.strftime('%Y-%m-%d %H:%M:%S') if rec.timestamp_utc else 'N/A' }}</td>
+                            <td>{{ rec.timestamp_utc.astimezone(timezone(timedelta(hours=-4))).strftime('%Y-%m-%d %H:%M:%S EST') if rec.timestamp_utc else 'N/A' }}</td>
                             <td>{{ rec.site | title }}</td>
                             <td>{{ rec.event_type }}</td>
                             <td>{{ rec.user_name or 'N/A' }}</td>
