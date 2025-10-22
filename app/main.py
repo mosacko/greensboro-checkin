@@ -247,6 +247,7 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
         print("WARNING: Could not load America/New_York timezone. Falling back to UTC.")
 
     formatted_records = []
+    
     for rec in all_records:
         if rec.timestamp_utc:
             # Convert UTC time to EST/EDT
@@ -274,24 +275,31 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
     
     # --- Group records by date ---
     records_by_date = defaultdict(list)
-    for rec in all_records:
-        # Use local_date if available, otherwise derive from timestamp_utc
-        record_date_str = rec.local_date 
-        if not record_date_str and rec.timestamp_utc:
-             # Assuming UTC, adjust if your server/users are in a specific timezone
-            record_date_str = rec.timestamp_utc.strftime('%Y-%m-%d') 
-        
+    # Iterate over the list of dictionaries now
+    for formatted_rec in formatted_records:  # <--- CHANGE HERE
+        # Get the date string from the dictionary
+        record_date_str = formatted_rec.get("local_date") 
+        if not record_date_str and formatted_rec.get("timestamp_utc"):
+            try:
+                # Use UTC timestamp if local_date is missing in dict
+                 record_date_str = formatted_rec["timestamp_utc"].strftime('%Y-%m-%d')
+            except Exception:
+                 record_date_str = None # Handle potential errors
+
         if record_date_str:
             try:
-                # Convert string date to date object for sorting keys later
                 record_date = date.fromisoformat(record_date_str) 
-                records_by_date[record_date].append(rec)
-            except ValueError:
-                # Handle cases where local_date might be invalid format
-                records_by_date["Invalid Date"].append(rec) 
+                # Append the dictionary to the list for that date
+                records_by_date[record_date].append(formatted_rec) # <--- CHANGE HERE
+            except (ValueError, TypeError): # Handle invalid date formats or None
+                records_by_date["Invalid Date"].append(formatted_rec) # <--- CHANGE HERE
+        else:
+             records_by_date["Invalid Date"].append(formatted_rec) # Handle missing date info
 
-    # Sort the dates so the most recent day appears first in the accordion
-    sorted_dates = sorted(records_by_date.keys(), reverse=True)
+    sorted_dates = sorted([d for d in records_by_date.keys() if isinstance(d, date)], reverse=True)
+    # Handle "Invalid Date" key if present
+    if "Invalid Date" in records_by_date:
+        sorted_dates.append("Invalid Date") 
     # -----------------------------
     
     # --- Logging (keep for now) ---
