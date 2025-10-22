@@ -37,7 +37,7 @@ app.add_middleware(
 # --------------------------------------------------------
 
 # Remove or comment out the StaticFiles line if you don't have an app/static folder
-# app.mount("/static", StaticFiles(directory="app/static"), name="static") 
+app.mount("/static", StaticFiles(directory="app/static"), name="static") 
 # Build path relative to the current file (main.py)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
