@@ -238,6 +238,39 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
                     .filter(Attendance.event_type == "check_in", Attendance.is_valid == True)\
                     .order_by(Attendance.timestamp_utc.desc())\
                     .all()
+
+    # --- Format Timestamps for Display ---
+    try:
+        est_zone = ZoneInfo("America/New_York")
+    except Exception:
+        est_zone = timezone.utc # Fallback to UTC if zoneinfo fails
+        print("WARNING: Could not load America/New_York timezone. Falling back to UTC.")
+
+    formatted_records = []
+    for rec in all_records:
+        if rec.timestamp_utc:
+            # Convert UTC time to EST/EDT
+            timestamp_est = rec.timestamp_utc.astimezone(est_zone)
+            # Create a formatted string
+            est_str = timestamp_est.strftime('%Y-%m-%d %H:%M:%S %Z') # Includes timezone abbr (EST/EDT)
+        else:
+            est_str = 'N/A'
+
+        # Create a dictionary or object copy to avoid modifying the original SQLAlchemy object
+        formatted_rec = {
+            "id": rec.id,
+            "timestamp_utc": rec.timestamp_utc, # Keep original UTC if needed elsewhere
+            "timestamp_display": est_str,      # Add the formatted string
+            "site": rec.site,
+            "event_type": rec.event_type,
+            "user_name": rec.user_name,
+            "device_local_id": rec.device_local_id,
+            "geo_lat": rec.geo_lat,
+            "geo_lon": rec.geo_lon,
+            # Add other fields if your template uses them
+        }
+        formatted_records.append(formatted_rec)
+    # ------------------------------------
     
     # --- Group records by date ---
     records_by_date = defaultdict(list)
@@ -277,7 +310,7 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
             # Pass the grouped data and sorted dates to the template
             "records_by_date": records_by_date, 
             "sorted_dates": sorted_dates, 
-            "all_records": all_records
+            "all_records": formatted_records
         }
     )
 # -------------------------------------------------------------

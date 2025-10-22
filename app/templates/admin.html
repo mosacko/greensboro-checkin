@@ -96,10 +96,12 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for rec in all_records %}
+                        {% for rec in all_records %} 
                         <tr>
                             <td>{{ rec.id }}</td>
-                            <td>{{ rec.timestamp_utc.astimezone(timezone(timedelta(hours=-4))).strftime('%Y-%m-%d %H:%M:%S EST') if rec.timestamp_utc else 'N/A' }}</td>
+                            {# --- Display the pre-formatted string --- #}
+                            <td>{{ rec.timestamp_display }}</td> 
+                            {# -------------------------------------- #}
                             <td>{{ rec.site | title }}</td>
                             <td>{{ rec.event_type }}</td>
                             <td>{{ rec.user_name or 'N/A' }}</td>
