@@ -92,99 +92,78 @@ async def login(request: Request):
 
 @app.get("/auth/callback")
 async def auth_callback(request: Request, db: Session = Depends(get_db)):
-    """Handles the response back from Microsoft after login."""
+    """
+    Handles the response back from Microsoft after login.
+    Saves user info to session, upserts employee record,
+    and redirects user back to the /scan page.
+    """
+    # 1. Check if SSO is configured
     if not oauth.azure.client_id:
         return PlainTextResponse("SSO not configured (missing client_id)", status_code=400)
 
+    # 2. Get the authorization token from Microsoft
     try:
         token = await oauth.azure.authorize_access_token(request)
     except OAuthError as e:
+        print(f"OAuthError during token fetch: {e.error} - {e.description}") # Add logging
         return PlainTextResponse(f"SSO error: {e.error} - {e.description}", status_code=400)
     except Exception as e:
+        print(f"Exception during token fetch: {repr(e)}") # Add logging
         return PlainTextResponse(f"Auth callback exception: {repr(e)}", status_code=400)
 
+    # 3. Extract user information from the token
     user_info = token.get("userinfo") or {}
     email = user_info.get("email") or user_info.get("preferred_username") or user_info.get("upn") or ""
     name = user_info.get("name") or (email.split("@")[0] if email else "Unknown")
 
+    print(f"--- /auth/callback ---") # Keep logging
+    print(f"User Info received from Azure: {user_info}")
+    print(f"Extracted Email: {email}")
+    print(f"Extracted Name: {name}")
+
     if not email:
+        print("ERROR: No email found in token/claims") # Add logging
         return PlainTextResponse("No email found in token/claims", status_code=400)
 
-    # Optional: Check domain allowlist
+    # 4. Optional: Check if the user's domain is allowed
     if settings.allowed_domains:
         domain = email.split("@")[-1].lower()
         if domain not in [d.lower() for d in settings.allowed_domains]:
+            print(f"Unauthorized domain: {domain}") # Add logging
             return PlainTextResponse(f"Unauthorized domain: {domain}", status_code=403)
 
-    # Store user info in the session
-    session_data = {"email": email, "name": name} # Store in a variable first
-    request.session["user"] = {"email": email, "name": name}
+    # 5. Store user information in the session cookie
+    session_data = {"email": email, "name": name}
+    request.session["user"] = session_data
+    print(f"Data saved to session: {session_data}") # Keep logging
 
-    # Upsert employee record (keep this)
-    emp = db.query(Employee).filter(Employee.email == email).first()
-    if not emp:
-        emp = Employee(email=email, display_name=name)
-        db.add(emp)
-    else: 
-        emp.display_name = name
-    db.commit() # Commit employee upsert first
-
-    # --- AUTOMATIC CHECK-IN ---
-    site_code = request.session.pop("intended_site", settings.default_site) 
-    # Get name and email reliably from session
-    user_session_data = request.session.get("user", {}) 
-    name = user_session_data.get("name", "Unknown")
-    email = user_session_data.get("email") # Get email
-    print(f"Attempting check-in for site: {site_code}, User: {email or name}") 
-
-    # --- Calculate current time and date in EST ---
-    now_utc = datetime.now(timezone.utc)
+    # 6. Upsert (update or insert) the employee record in our database
     try:
-        est_zone = ZoneInfo("America/New_York") 
-        now_est = now_utc.astimezone(est_zone)
-        local_date_str = now_est.strftime("%Y-%m-%d") 
-    except Exception as e:
-        print(f"Timezone conversion error: {e}. Falling back to UTC date.")
-        local_date_str = now_utc.strftime("%Y-%m-%d")
-    # ---------------------------------------------
+        emp = db.query(Employee).filter(Employee.email == email).first()
+        if not emp:
+            print(f"Creating new Employee record for: {email}") # Add logging
+            emp = Employee(email=email, display_name=name)
+            db.add(emp)
+        else:
+            if emp.display_name != name: # Only update if name changed
+                 print(f"Updating display name for: {email}") # Add logging
+                 emp.display_name = name
+            else:
+                 print(f"Found existing Employee record for: {email}") # Add logging
 
-    # Check if already checked in today before creating new record
-    if email: # Only check if we have an email
-        try:
-            existing_checkin = db.query(Attendance).filter(
-                Attendance.local_date == local_date_str,
-                Attendance.user_email == email, # <-- Check by email
-                Attendance.event_type == "check_in",
-                Attendance.is_valid == True
-            ).first()
-            if existing_checkin:
-                 print(f"User {email} already checked in today via callback ({local_date_str}).")
-                 return RedirectResponse(url="/already-checked-in") 
-        except Exception as e:
-            print(f"Error checking existing check-in during callback: {e}")
-            # Proceed if check fails? For now, yes.
-
-    # Create the Attendance record directly
-    new_checkin = Attendance(
-        site=site_code,
-        event_type="check_in",
-        is_valid=True,
-        source="sso_callback", 
-        timestamp_utc=now_utc, 
-        local_date=local_date_str, 
-        user_name=name, 
-        user_email=email # <-- Save the email
-    )
-    db.add(new_checkin)
-    try:
-        db.commit()
-        print(f"Check-in successful for {email or name} at {site_code} on {local_date_str} (EST)") 
-        return RedirectResponse(url="/checkin-success") 
+        db.commit() # Commit employee changes
     except Exception as e:
         db.rollback()
-        print(f"ERROR during check-in commit: {e}") 
-        return PlainTextResponse(f"Login successful, but check-in failed: {e}", status_code=500)
-    # -------------------------
+        print(f"ERROR during Employee upsert: {e}") # Add logging
+        # Decide how to handle - maybe still redirect? Or show error?
+        # For now, let's still try to redirect, but log the error.
+
+    # 7. Redirect back to the originally intended /scan page
+    # Retrieve the site stored before the login redirect
+    intended_site = request.session.pop("intended_site", settings.default_site)
+    redirect_url = f"/scan?site={intended_site}"
+    print(f"Login successful, redirecting back to: {redirect_url}") # Keep logging
+    return RedirectResponse(url=redirect_url)
 
 @app.get("/logout")
 def logout(request: Request):
@@ -194,10 +173,10 @@ def logout(request: Request):
 
 # ------------------------
 
-@app.get("/checkin-success", response_class=HTMLResponse)
-def checkin_success(request: Request):
-    """Displays a simple success message after check-in."""
-    return templates.TemplateResponse("checkin_success.html", {"request": request})
+#@app.get("/checkin-success", response_class=HTMLResponse)
+#def checkin_success(request: Request):
+#    """Displays a simple success message after check-in."""
+#    return templates.TemplateResponse("checkin_success.html", {"request": request})
 
 @app.get("/already-checked-in", response_class=HTMLResponse)
 def already_checked_in(request: Request):

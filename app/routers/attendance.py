@@ -35,51 +35,24 @@ class FinalizePayload(BaseModel):
 
 @router.get("/scan", response_class=HTMLResponse)
 def scan(request: Request, db: Session = Depends(get_db), site: Optional[str] = None):
-    
     user_name = None
-    user_email = None # Need email for querying
-    
+    user_email = None
+
     if settings.sso_required:
         user_session_data = request.session.get("user")
         if not user_session_data:
-            # Not logged in, redirect to login (which stores intended site)
-            return RedirectResponse(url=f"/login?site={site or settings.default_site}") 
-        
-        user_name = user_session_data.get("name") 
-        user_email = user_session_data.get("email") # Get email too
+            # Store intended site before redirecting to login
+            request.session["intended_site"] = site or settings.default_site
+            return RedirectResponse(url="/login")
 
-        # --- CHECK IF ALREADY CHECKED IN TODAY (EST) ---
-        if user_email: # Only check if we have an email
-            try:
-                est_zone = ZoneInfo("America/New_York")
-                today_est_str = datetime.now(est_zone).strftime("%Y-%m-%d")
-                
-                existing_checkin = db.query(Attendance).filter(
-                    Attendance.local_date == today_est_str,
-                    Attendance.user_email == user_email, # <-- Check by email
-                    Attendance.event_type == "check_in",
-                    Attendance.is_valid == True
-                ).first()
+        user_name = user_session_data.get("name")
+        user_email = user_session_data.get("email")
 
-                if existing_checkin:
-                    print(f"User {user_email} already checked in today ({today_est_str}).")
-                    return RedirectResponse(url="/already-checked-in") 
-                    
-            except Exception as e:
-                print(f"Error checking for existing check-in: {e}")
-                # Proceed with check-in if error occurs during check
-        else:
-             print("WARNING: No user email found in session to check for duplicates.")
-        # ----------------------------------------------------
-    else: # If SSO is not required (MVP mode)
-       # Handle non-SSO check-in if needed, or remove this logic
-       pass # Currently does nothing if SSO disabled
-
-    # --- PROCEED WITH CHECK-IN (IF NOT ALREADY CHECKED IN) ---
     site_code = site or settings.default_site
     if site_code not in settings.sites:
         site_code = settings.default_site
 
+    # --- RESTORE: Create a provisional record ---
     now_utc = datetime.now(timezone.utc)
     try:
         est_zone = ZoneInfo("America/New_York")
@@ -88,22 +61,97 @@ def scan(request: Request, db: Session = Depends(get_db), site: Optional[str] = 
     except Exception:
         local_date_str = now_utc.strftime("%Y-%m-%d")
 
-    print(f"Creating NEW Attendance record for {user_email or user_name} on {local_date_str} (EST)")
+    # Remove previous check for existing checkin here, it should happen in /finalize if needed
+
     rec = Attendance(
         site=site_code,
-        event_type="check_in", 
-        is_valid=True,
-        source="qr_scan_loggedin", 
+        event_type="check_in",
+        is_valid=True, # Mark as provisional? Could add a status field later.
+        source="qr_scan_provisional",
         timestamp_utc=now_utc,
         local_date=local_date_str,
         user_name=user_name,
-        user_email=user_email # <-- Save the email
+        user_email=user_email
     )
     db.add(rec)
+    db.commit()
+    db.refresh(rec) # Get the generated ID
+    # --- END RESTORE ---
+
+    token = str(rec.id) # Use the DB ID as the token
+
+    # Render the scan page for the user to submit
+    return templates.TemplateResponse(
+        "scan.html",
+        {"request": request, "token": token, "site": site_code}
+    )
+
+@router.post("/finalize")
+async def finalize(payload: FinalizePayload, request: Request, db: Session = Depends(get_db)): # Add request parameter
     try:
-        db.commit()
-        return RedirectResponse(url="/checkin-success")
-    except Exception as e:
-        db.rollback()
-        print(f"Error committing new check-in via /scan: {e}")
-        return PlainTextResponse("Check-in failed.", status_code=500)
+        pk = int(payload.token)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Invalid token")
+
+    rec = db.get(Attendance, pk)
+    if not rec:
+        raise HTTPException(status_code=404, detail="Token not found")
+
+    # --- ADD DUPLICATE CHECK HERE ---
+    user_email = request.session.get("user", {}).get("email") # Get email from session
+
+    if user_email and rec.event_type == "check_in": # Only check for check-ins if we have email
+        try:
+            est_zone = ZoneInfo("America/New_York")
+            today_est_str = datetime.now(est_zone).strftime("%Y-%m-%d")
+
+            # Check for OTHER finalized check-ins today by this user
+            existing_finalized_checkin = db.query(Attendance).filter(
+                Attendance.id != pk, # Exclude the current provisional record
+                Attendance.local_date == today_est_str,
+                Attendance.user_email == user_email,
+                Attendance.event_type == "check_in",
+                Attendance.is_valid == True,
+                # Check if the source indicates it was finalized
+                Attendance.source == "qr_scan_finalized" 
+            ).first()
+
+            if existing_finalized_checkin:
+                print(f"User {user_email} trying to finalize, but already checked in today ({today_est_str}). Invalidating provisional record.")
+                # Optionally invalidate the provisional record instead of finalizing
+                rec.is_valid = False 
+                rec.notes = "Attempted duplicate check-in."
+                rec.source = "qr_scan_duplicate"
+                db.add(rec)
+                db.commit()
+                # Redirect to already checked in page
+                # You'll need RedirectResponse imported: from fastapi.responses import RedirectResponse
+                # return RedirectResponse(url="/already-checked-in", status_code=303) 
+                # OR return an error/message
+                return {"ok": False, "message": "Already checked in today."}
+
+        except Exception as e:
+            print(f"Error checking for existing finalized check-in: {e}")
+            # Decide how to handle - maybe allow finalize anyway? For now, proceed.
+    # --------------------------------
+
+    # --- Finalize the record ---
+    print(f"Finalizing check-in for {user_email or rec.user_name}, ID: {pk}")
+    rec.device_local_id = payload.deviceId or rec.device_local_id
+    rec.user_agent = payload.userAgent
+    rec.source = "qr_scan_finalized" # Mark as finalized
+
+    if payload.geo:
+        rec.geo_lat = payload.geo.lat
+        rec.geo_lon = payload.geo.lon
+
+    # Mark as valid if it wasn't invalidated above
+    if rec.is_valid is None: # Handle case if is_valid wasn't set yet
+         rec.is_valid = True
+
+    db.add(rec)
+    db.commit()
+
+    # Redirect home or to a success page after successful finalization
+    # return RedirectResponse(url="/checkin-success", status_code=303) 
+    return {"ok": True, "token": payload.token}
