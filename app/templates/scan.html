@@ -22,6 +22,20 @@
                         <p class="fs-5">Site: <strong>{{ site | title }}</strong></p>
                     </div>
 
+                    {# === ADD THIS DROPDOWN SECTION === #}
+                    <div class="mb-3"> 
+                      <label for="visit_reason" class="form-label">Reason for Visit:</label>
+                      <select id="visit_reason" name="visit_reason" required class="form-select">
+                        <option value="" disabled selected>-- Select a Reason --</option>
+                        <option value="Work">Work</option>
+                        <option value="Visit">Visit</option>
+                        <option value="Client Meeting">Client Meeting</option>
+                        <option value="Internal Meeting">Internal Meeting</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    {# === END DROPDOWN SECTION === #}
+
                     <div class="d-grid">
                         <button type="submit" id="submit-button" class="btn btn-primary btn-lg">Submit Check-in</button>
                     </div>
