@@ -24,7 +24,7 @@ from .models import Attendance
 
 import os
 
-app = FastAPI(title="Greensboro Check-in")
+app = FastAPI(title="Greenville Check-in")
 
 # --- ADD SESSION MIDDLEWARE (Must be before routers) ---
 SESSION_TIMEOUT_SECONDS = 8 * 60 * 60 # 8 hours in seconds

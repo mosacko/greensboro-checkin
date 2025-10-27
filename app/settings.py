@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     allowed_domains: List[str] = ["sebridgeinspection.com","wsp.com","southeastbridge.onmicrosoft.com"] # Optional: List of allowed email domains
     # -----------------------------
 
-    sites: Dict[str, str] = {"greensboro":"Greensboro","remote":"Remote"}
-    default_site: str = "greensboro"
+    sites: Dict[str, str] = {"greenville":"Greenville","remote":"Remote"}
+    default_site: str = "greenville"
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="", extra="allow")
 
