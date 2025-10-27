@@ -136,22 +136,23 @@ async def finalize(payload: FinalizePayload, request: Request, db: Session = Dep
     # --------------------------------
 
     # --- Finalize the record ---
-    print(f"Finalizing check-in for {user_email or rec.user_name}, ID: {pk}")
+    print(f"Finalizing check-in for {rec.user_email or rec.user_name}, ID: {pk}")
     rec.device_local_id = payload.deviceId or rec.device_local_id
     rec.user_agent = payload.userAgent
-    rec.source = "qr_scan_finalized" # Mark as finalized
+    rec.source = "qr_scan_finalized" 
+
+    # --- ADD THIS LINE ---
+    rec.visit_reason = payload.visitReason # Assign the reason from the payload
+    # ---------------------
 
     if payload.geo:
         rec.geo_lat = payload.geo.lat
         rec.geo_lon = payload.geo.lon
-
-    # Mark as valid if it wasn't invalidated above
-    if rec.is_valid is None: # Handle case if is_valid wasn't set yet
+    
+    if rec.is_valid is None:
          rec.is_valid = True
 
     db.add(rec)
     db.commit()
 
-    # Redirect home or to a success page after successful finalization
-    # return RedirectResponse(url="/checkin-success", status_code=303) 
     return {"ok": True, "token": payload.token}
