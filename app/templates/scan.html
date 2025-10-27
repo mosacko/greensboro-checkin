@@ -33,94 +33,126 @@
 </div>
 
 <script>
-function initializeForm(){
-  try{
-    let id = localStorage.getItem('qr_device_id');
-    if(!id){
-      id = (crypto.randomUUID ? crypto.randomUUID()
-          : Math.random().toString(36).slice(2) + Date.now().toString(36));
-      localStorage.setItem('qr_device_id', id);
+// Wait for the HTML document to be fully loaded before running script
+document.addEventListener('DOMContentLoaded', function() {
+
+    // --- Your existing functions go inside ---
+    function initializeForm(){
+      try{
+        let id = localStorage.getItem('qr_device_id');
+        if(!id){
+          id = (crypto.randomUUID ? crypto.randomUUID()
+                : Math.random().toString(36).slice(2) + Date.now().toString(36));
+          localStorage.setItem('qr_device_id', id);
+        }
+        // Ensure element exists before accessing value - belt and braces
+        const deviceIdInput = document.getElementById('device_local_id');
+        if (deviceIdInput) deviceIdInput.value = id;
+      }catch(e){
+        const deviceIdInput = document.getElementById('device_local_id');
+        if (deviceIdInput) deviceIdInput.value = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      }
+
+      // Ensure element exists before accessing value
+      const userAgentInput = document.getElementById('user_agent');
+      if (userAgentInput) userAgentInput.value = navigator.userAgent;
+
+      if(navigator.geolocation){
+        navigator.geolocation.getCurrentPosition(
+          (pos)=>{
+            const latInput = document.getElementById('geo_lat');
+            const lonInput = document.getElementById('geo_lon');
+            if (latInput) latInput.value = pos.coords.latitude;
+            if (lonInput) lonInput.value = pos.coords.longitude;
+          },
+          ()=>{}, {enableHighAccuracy:true, timeout:5000}
+        );
+      }
     }
-    document.getElementById('device_local_id').value = id;
-  }catch(e){
-    document.getElementById('device_local_id').value =
-      Math.random().toString(36).slice(2) + Date.now().toString(36);
-  }
-  document.getElementById('user_agent').value = navigator.userAgent;
-  if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(
-      (pos)=>{
-        document.getElementById('geo_lat').value = pos.coords.latitude;
-        document.getElementById('geo_lon').value = pos.coords.longitude;
-      },
-      ()=>{}, {enableHighAccuracy:true, timeout:5000}
-    );
-  }
-}
 
-document.getElementById('attendance-form').addEventListener('submit', function(e){
-  e.preventDefault();
-  const statusMessage = document.getElementById('status-message');
-  
-  // Get visit reason
-  const visitReason = document.getElementById('visit_reason').value;
-  if (!visitReason) { 
-      statusMessage.textContent='Please select a reason for visit.';
-      statusMessage.style.color='red';
-      return; 
-  }
-  
-  const payload = {
-    token: document.getElementById('token').value,
-    site: document.getElementById('site').value,
-    deviceId: document.getElementById('device_local_id').value,
-    userAgent: document.getElementById('user_agent').value,
-    geo: {
-      lat: document.getElementById('geo_lat').value ? parseFloat(document.getElementById('geo_lat').value) : null,
-      lon: document.getElementById('geo_lon').value ? parseFloat(document.getElementById('geo_lon').value) : null
-    },
-    nameText: null, 
-    signatureDataUrl: null,
-    visitReason: visitReason // --- Ensure visitReason is included ---
-  };
+    const form = document.getElementById('attendance-form');
+    // Ensure form exists before adding listener
+    if (form) {
+        form.addEventListener('submit', function(e){
+          e.preventDefault();
+          const statusMessage = document.getElementById('status-message');
+          const visitReasonSelect = document.getElementById('visit_reason'); // Get reason select element
 
-  statusMessage.textContent = 'Submitting...'; 
-  document.getElementById('submit-button').disabled = true; 
+          // --- GET VISIT REASON ---
+          const visitReason = visitReasonSelect ? visitReasonSelect.value : null; // Check if element exists
+          if (!visitReason) { // Basic validation
+              if (statusMessage) { // Check if status message element exists
+                statusMessage.textContent='Please select a reason for visit.';
+                statusMessage.style.color='red';
+              }
+              return;
+          }
+          // -------------------------
 
-  fetch('/finalize', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)})
-    .then(r=>{ 
-        if(!r.ok) { 
-            // Better error handling from previous step
-            r.json().then(err => { statusMessage.textContent = `Failed: ${err.detail || 'Unknown error'}`; })
-              .catch(() => { statusMessage.textContent = `Failed: HTTP ${r.status}`; });
-            statusMessage.style.color='red';
-            throw new Error('bad response'); 
-        } 
-        return r.json(); 
-    })
-    .then((data)=>{ 
-        if (data.ok === false && data.message) { 
-             statusMessage.textContent = data.message;
-             statusMessage.style.color = 'orange'; 
-        } else {
-             statusMessage.textContent='Saved!'; 
-             window.location.href='/'; // Redirect home
-        }
-    })
-    .catch((error)=>{ 
-        if (error.message !== 'bad response') { 
-            console.error("Fetch error:", error);
-            statusMessage.textContent='Failed due to network or script error.';
-            statusMessage.style.color='red';
-        }
-    })
-    .finally(() => {
-        if (statusMessage.textContent !== 'Saved!') {
-            document.getElementById('submit-button').disabled = false; 
-        }
-    });
-});
+          // Safely get values, checking if elements exist
+          const payload = {
+            token: document.getElementById('token')?.value || '',
+            site: document.getElementById('site')?.value || '',
+            deviceId: document.getElementById('device_local_id')?.value || null,
+            userAgent: document.getElementById('user_agent')?.value || null,
+            geo: {
+              lat: document.getElementById('geo_lat')?.value ? parseFloat(document.getElementById('geo_lat').value) : null,
+              lon: document.getElementById('geo_lon')?.value ? parseFloat(document.getElementById('geo_lon').value) : null
+            },
+            nameText: null,
+            signatureDataUrl: null,
+            visitReason: visitReason // --- INCLUDE VISIT REASON ---
+          };
 
-initializeForm();
+          if (statusMessage) statusMessage.textContent = 'Submitting...';
+          const submitButton = document.getElementById('submit-button');
+          if (submitButton) submitButton.disabled = true;
+
+          fetch('/finalize', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)})
+            .then(r=>{
+                if(!r.ok) {
+                    r.json().then(err => {
+                       if (statusMessage) statusMessage.textContent = `Failed: ${err.detail || 'Unknown error'}`;
+                    }).catch(() => {
+                       if (statusMessage) statusMessage.textContent = `Failed: HTTP ${r.status}`;
+                    });
+                    if (statusMessage) statusMessage.style.color='red';
+                    throw new Error('bad response');
+                }
+                return r.json();
+            })
+            .then((data)=>{
+                if (data.ok === false && data.message) {
+                     if (statusMessage) {
+                         statusMessage.textContent = data.message;
+                         statusMessage.style.color = 'orange';
+                     }
+                } else {
+                     if (statusMessage) statusMessage.textContent='Saved!';
+                     window.location.href='/'; // Redirect home
+                }
+            })
+            .catch((error)=>{
+                if (error.message !== 'bad response') {
+                    console.error("Fetch error:", error);
+                    if (statusMessage) {
+                        statusMessage.textContent='Failed due to network or script error.';
+                        statusMessage.style.color='red';
+                    }
+                }
+            })
+            .finally(() => {
+                if (statusMessage && statusMessage.textContent !== 'Saved!') {
+                    if (submitButton) submitButton.disabled = false;
+                }
+            });
+        });
+    } // End if (form)
+
+    // Call initializeForm after DOM is loaded
+    initializeForm();
+    // ------------------------------------------
+
+}); // End DOMContentLoaded listener
 </script>
 {% endblock %}
