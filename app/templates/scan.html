@@ -61,6 +61,15 @@ function initializeForm(){
 document.getElementById('attendance-form').addEventListener('submit', function(e){
   e.preventDefault();
   const statusMessage = document.getElementById('status-message');
+  
+  // Get visit reason
+  const visitReason = document.getElementById('visit_reason').value;
+  if (!visitReason) { 
+      statusMessage.textContent='Please select a reason for visit.';
+      statusMessage.style.color='red';
+      return; 
+  }
+  
   const payload = {
     token: document.getElementById('token').value,
     site: document.getElementById('site').value,
@@ -70,13 +79,46 @@ document.getElementById('attendance-form').addEventListener('submit', function(e
       lat: document.getElementById('geo_lat').value ? parseFloat(document.getElementById('geo_lat').value) : null,
       lon: document.getElementById('geo_lon').value ? parseFloat(document.getElementById('geo_lon').value) : null
     },
-    nameText: null,
-    signatureDataUrl: null
+    nameText: null, 
+    signatureDataUrl: null,
+    visitReason: visitReason // --- Ensure visitReason is included ---
   };
+
+  statusMessage.textContent = 'Submitting...'; 
+  document.getElementById('submit-button').disabled = true; 
+
   fetch('/finalize', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)})
-    .then(r=>{ if(!r.ok) throw new Error('bad'); return r.json(); })
-    .then(()=>{ statusMessage.textContent='Saved!'; window.location.href='/'; })
-    .catch(()=>{ statusMessage.textContent='Failed.'; statusMessage.style.color='red'; });
+    .then(r=>{ 
+        if(!r.ok) { 
+            // Better error handling from previous step
+            r.json().then(err => { statusMessage.textContent = `Failed: ${err.detail || 'Unknown error'}`; })
+              .catch(() => { statusMessage.textContent = `Failed: HTTP ${r.status}`; });
+            statusMessage.style.color='red';
+            throw new Error('bad response'); 
+        } 
+        return r.json(); 
+    })
+    .then((data)=>{ 
+        if (data.ok === false && data.message) { 
+             statusMessage.textContent = data.message;
+             statusMessage.style.color = 'orange'; 
+        } else {
+             statusMessage.textContent='Saved!'; 
+             window.location.href='/'; // Redirect home
+        }
+    })
+    .catch((error)=>{ 
+        if (error.message !== 'bad response') { 
+            console.error("Fetch error:", error);
+            statusMessage.textContent='Failed due to network or script error.';
+            statusMessage.style.color='red';
+        }
+    })
+    .finally(() => {
+        if (statusMessage.textContent !== 'Saved!') {
+            document.getElementById('submit-button').disabled = false; 
+        }
+    });
 });
 
 initializeForm();

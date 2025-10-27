@@ -34,6 +34,8 @@ class Attendance(Base):
 
     user_name = Column(String(200), nullable=True) # To store the name from SSO
     user_email = Column(String(320), nullable=True, index=True) # Add email, index for faster lookups
+
+    visit_reason = Column(String(50), nullable=True) # Reason for visit
     
     source = Column(String(32), nullable=False, default="qr")
     user_agent = Column(Text)
