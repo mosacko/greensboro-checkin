@@ -92,7 +92,7 @@
                             <th>Site</th>
                             <th>Event Type</th>
                             <th>User Name</th>
-                            <th>Reason</th>   {# <-- ADD REASON HEADER --> #}
+                            <th>Reason</th>
                             <th>Device ID</th>
                             <th>Geo (Lat, Lon)</th>
                         </tr>
@@ -105,7 +105,7 @@
                             <td>{{ rec.site | title }}</td>
                             <td>{{ rec.event_type }}</td>
                             <td>{{ rec.user_name or 'N/A' }}</td>
-                            <td>{{ rec.visit_reason or 'N/A' }}</td> {/* <-- ADD REASON DATA CELL --> */}
+                            <td>{{ rec.visit_reason or 'N/A' }}</td>
                             <td>{{ rec.device_local_id or 'N/A' }}</td>
                             <td>
                                 {% if rec.geo_lat and rec.geo_lon %}
@@ -115,7 +115,7 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="8" class="text-center fst-italic">No records found.</td> {/* <-- UPDATE COLSPAN TO 8 --> */}
+                            <td colspan="8" class="text-center fst-italic">No records found.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
