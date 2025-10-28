@@ -30,6 +30,7 @@ class FinalizePayload(BaseModel):
     geo: Optional[GeoPayload] = None
     nameText: Optional[str] = None
     signatureDataUrl: Optional[str] = None
+    visit_reason: Optional[str] = None
 
 # --- Routes ---
 
