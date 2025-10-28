@@ -89,6 +89,7 @@ def scan(request: Request, db: Session = Depends(get_db), site: Optional[str] = 
 
 @router.post("/finalize")
 async def finalize(payload: FinalizePayload, request: Request, db: Session = Depends(get_db)): # Add request parameter
+    print(f"--- /finalize received payload: {payload.model_dump()}") # <-- ADD THIS
     try:
         pk = int(payload.token)
     except (TypeError, ValueError):
