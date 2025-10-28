@@ -118,6 +118,10 @@ document.addEventListener('DOMContentLoaded', function() {
             visitReason: visitReason // --- INCLUDE VISIT REASON ---
           };
 
+          // --- ADD THIS LINE ---
+          console.log("Payload being sent:", JSON.stringify(payload)); 
+          // ---------------------
+
           if (statusMessage) statusMessage.textContent = 'Submitting...';
           const submitButton = document.getElementById('submit-button');
           if (submitButton) submitButton.disabled = true;
