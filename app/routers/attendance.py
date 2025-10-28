@@ -142,7 +142,7 @@ async def finalize(payload: FinalizePayload, request: Request, db: Session = Dep
     rec.source = "qr_scan_finalized" 
 
     # --- ADD THIS LINE ---
-    rec.visit_reason = payload.visitReason # Assign the reason from the payload
+    rec.visit_reason = payload.visit_reason # Assign the reason from the payload
     # ---------------------
 
     if payload.geo:
