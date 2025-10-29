@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func, cast # Import necessary SQLAlchemy functions
+from sqlalchemy import func, cast, extract # Import necessary SQLAlchemy functions
 from datetime import datetime, timedelta, timezone, date # Import date/time functions
 import re # Import regular expression module for date validation
 
@@ -91,3 +91,55 @@ async def get_attendance_for_date(date_str: str, db: Session = Depends(get_db)):
     ]
 
     return results
+
+@router.get("/monthly_summary/{year_month}")
+async def get_monthly_summary(year_month: str, db: Session = Depends(get_db)):
+    """
+    Calculates total check-ins and breakdown by reason for a given month (YYYY-MM).
+    """
+    # Validate format YYYY-MM
+    if not re.match(r"^\d{4}-\d{2}$", year_month):
+        raise HTTPException(status_code=400, detail="Invalid month format. Use YYYY-MM.")
+
+    try:
+        year, month = map(int, year_month.split('-'))
+        # Basic validation for month value
+        if not (1 <= month <= 12):
+             raise ValueError("Month out of range")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid year or month value.")
+
+    # Query for total count and reason breakdown for the given month
+    # We filter using date functions directly in the query
+    results = db.query(
+            Attendance.visit_reason,
+            func.count(Attendance.id).label('count')
+        ).filter(
+            # Extract year and month from the UTC timestamp
+            extract('year', Attendance.timestamp_utc) == year,
+            extract('month', Attendance.timestamp_utc) == month,
+            Attendance.event_type == "check_in",
+            Attendance.is_valid == True
+        ).group_by(
+            Attendance.visit_reason
+        ).all() # Returns a list of (reason, count) tuples
+
+    total_checkins = sum(r.count for r in results)
+    reason_breakdown = { (r.visit_reason if r.visit_reason else "N/A"): r.count for r in results }
+
+    # Calculate percentages (optional but useful)
+    reason_breakdown_percent = {}
+    if total_checkins > 0:
+        for reason, count in reason_breakdown.items():
+            percent = round((count / total_checkins) * 100, 1)
+            reason_breakdown_percent[reason] = f"{count} ({percent}%)"
+    else:
+         for reason, count in reason_breakdown.items():
+              reason_breakdown_percent[reason] = f"{count} (0.0%)"
+
+
+    return {
+        "month": year_month,
+        "total_checkins": total_checkins,
+        "reason_breakdown": reason_breakdown_percent # Return the formatted breakdown
+    }
