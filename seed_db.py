@@ -14,9 +14,11 @@ from app.models import Attendance, Employee
 
 # --- Configuration ---
 NUM_EMPLOYEES = 20
-NUM_DAYS = 30
+NUM_DAYS = 90
 CHECK_IN_RATE = 0.75 # 75%
 SITE_CODE = "greensboro" 
+# --- ADD VISIT REASONS ---
+VISIT_REASONS = ["Work", "Visit", "Client Meeting", "Internal Meeting", "Other"]
 # ---------------------
 
 # Setup database connection
@@ -69,28 +71,25 @@ try:
     print("Generating attendance data...")
     for i in range(NUM_DAYS):
         current_date = today - timedelta(days=i)
-        # Skip weekends (optional)
-        # if current_date.weekday() >= 5: # 5=Saturday, 6=Sunday
-        #     continue 
-
+        # ... (Skip weekends if uncommented) ...
         current_date_str = current_date.strftime("%Y-%m-%d")
 
         for employee in all_employees:
-            # Decide if employee checks in based on rate
             if random.random() < CHECK_IN_RATE:
-                # Generate a random check-in time between 8 AM and 10 AM EST for that day
+                # ... (Generate random check-in time and timestamp_utc) ...
                 checkin_hour = random.randint(8, 9)
                 checkin_minute = random.randint(0, 59)
                 checkin_second = random.randint(0, 59)
-
-                # Create timestamp in EST
                 timestamp_est = datetime(
                     current_date.year, current_date.month, current_date.day,
                     checkin_hour, checkin_minute, checkin_second,
                     tzinfo=est_zone
                 )
-                # Convert to UTC for storage
                 timestamp_utc = timestamp_est.astimezone(timezone.utc)
+
+                # --- CHOOSE A RANDOM REASON ---
+                chosen_reason = random.choice(VISIT_REASONS)
+                # -----------------------------
 
                 attendance_records.append(Attendance(
                     timestamp_utc=timestamp_utc,
@@ -99,6 +98,7 @@ try:
                     event_type="check_in",
                     user_name=employee.display_name,
                     user_email=employee.email,
+                    visit_reason=chosen_reason, # <-- ADD THE REASON HERE
                     source="dummy_data",
                     is_valid=True
                 ))
