@@ -3,7 +3,7 @@
 {% block title %}Admin Dashboard{% endblock %}
 
 {% block content %}
-    <h1 class="mb-3">Attendance Records</h1>
+    <h1 class="mb-3">Check-ins Calendar</h1>
     <div class="logout mb-4"><a href="/admin/logout">Logout</a></div>
 
     <div class="row">
@@ -45,7 +45,7 @@
     {# --- CARD 1: Monthly Accordion --- #}
     <div class="card mb-4">
         <div class="card-header">
-            <h2>Check-ins by Month</h2>
+            <h2>Check-ins Monthly Breakdown</h2>
         </div>
         <div class="card-body">
             <div class="accordion" id="monthlyAccordion">
@@ -102,7 +102,7 @@
     {# --- CARD 2: Reason Accordion --- #}
     <div class="card mb-4">
         <div class="card-header">
-            <h2>Check-ins by Reason</h2>
+            <h2>Check-ins Reason Breakdown</h2>
         </div>
         <div class="card-body">
             <div class="accordion" id="reasonAccordion">
@@ -165,7 +165,7 @@
     {# --- All Records Table --- #}
     <div class="card">
         <div class="card-header">
-             <h2>All Records (Raw Data)</h2>
+             <h2>All Checkins (Raw Data)</h2>
         </div>
         <div class="card-body">
              <div class="table-responsive">
