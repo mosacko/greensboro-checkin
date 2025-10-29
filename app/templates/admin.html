@@ -126,18 +126,53 @@
     #}
     {# --- END CARD 3 --- #}
 
-    {# --- CARD 4: All Records Table (Keep as is) --- #}
+    {# --- All Records Table --- #}
     <div class="card">
         <div class="card-header">
              <h2>All Records (Raw Data)</h2>
         </div>
         <div class="card-body">
              <div class="table-responsive">
-                {# ... Your existing table for all_records ... #}
+                <table class="table table-striped table-hover table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Timestamp</th>
+                            <th>Site</th>
+                            <th>Event Type</th>
+                            <th>User Name</th>
+                            <th>Reason</th>
+                            <th>Device ID</th>
+                            <th>Geo (Lat, Lon)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rec in all_records %}
+                        <tr>
+                            <td>{{ rec.id }}</td>
+                            <td>{{ rec.timestamp_display }}</td>
+                            <td>{{ rec.site | title }}</td>
+                            <td>{{ rec.event_type }}</td>
+                            <td>{{ rec.user_name or 'N/A' }}</td>
+                            <td>{{ rec.visit_reason or 'Not Found' }}</td>
+                            <td>{{ rec.device_local_id or 'N/A' }}</td>
+                            <td>
+                                {% if rec.geo_lat and rec.geo_lon %}
+                                    {{ "%.4f"|format(rec.geo_lat) }}, {{ "%.4f"|format(rec.geo_lon) }}
+                                {% else %} N/A {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center fst-italic">No records found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
              </div>
         </div>
     </div>
-    {# --- END CARD 4 --- #}
+    {# --- END All Records Card --- #}
 
     {# --- Part 2: JavaScript Logic --- #}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
