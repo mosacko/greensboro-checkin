@@ -9,6 +9,8 @@ import re # Import regular expression module for date validation
 from ..database import get_db
 from ..models import Attendance
 
+from collections import defaultdict
+
 router = APIRouter(
     prefix="/api/metrics", # Add a prefix for all routes in this file
     tags=["metrics"]        # Tag for API documentation
@@ -111,35 +113,48 @@ async def get_monthly_summary(year_month: str, db: Session = Depends(get_db)):
 
     # Query for total count and reason breakdown for the given month
     # We filter using date functions directly in the query
-    results = db.query(
+    # Query for records in the given month
+    records_in_month = db.query(
             Attendance.visit_reason,
-            func.count(Attendance.id).label('count')
+            Attendance.business_line # Also query business_line
         ).filter(
-            # Extract year and month from the UTC timestamp
             extract('year', Attendance.timestamp_utc) == year,
             extract('month', Attendance.timestamp_utc) == month,
             Attendance.event_type == "check_in",
             Attendance.is_valid == True
-        ).group_by(
-            Attendance.visit_reason
-        ).all() # Returns a list of (reason, count) tuples
+        ).all() 
 
-    total_checkins = sum(r.count for r in results)
-    reason_breakdown = { (r.visit_reason if r.visit_reason else "N/A"): r.count for r in results }
+    total_checkins = len(records_in_month)
+    # --- Calculate Breakdowns ---
+    reason_counts = defaultdict(int)
+    business_line_counts = defaultdict(int)
+    
+    for record in records_in_month:
+        reason_key = record.visit_reason if record.visit_reason else "N/A"
+        business_line_key = record.business_line if record.business_line else "N/A"
+        reason_counts[reason_key] += 1
+        business_line_counts[business_line_key] += 1
+    # ---------------------------
 
-    # Calculate percentages (optional but useful)
-    reason_breakdown_percent = {}
-    if total_checkins > 0:
-        for reason, count in reason_breakdown.items():
-            percent = round((count / total_checkins) * 100, 1)
-            reason_breakdown_percent[reason] = f"{count} ({percent}%)"
-    else:
-         for reason, count in reason_breakdown.items():
-              reason_breakdown_percent[reason] = f"{count} (0.0%)"
+    # --- Format Breakdowns with Percentages ---
+    def format_breakdown(counts_dict, total):
+        formatted = {}
+        if total > 0:
+            for key, count in counts_dict.items():
+                percent = round((count / total) * 100, 1)
+                formatted[key] = f"{count} ({percent}%)"
+        else:
+            for key, count in counts_dict.items():
+                 formatted[key] = f"{count} (0.0%)"
+        return formatted
 
+    reason_breakdown_percent = format_breakdown(reason_counts, total_checkins)
+    business_line_breakdown_percent = format_breakdown(business_line_counts, total_checkins) # Format business line
+    # ----------------------------------------
 
     return {
         "month": year_month,
         "total_checkins": total_checkins,
-        "reason_breakdown": reason_breakdown_percent # Return the formatted breakdown
+        "reason_breakdown": reason_breakdown_percent,
+        "business_line_breakdown": business_line_breakdown_percent # <-- RETURN NEW DATA
     }

@@ -291,14 +291,28 @@
 
             // Build HTML for the summary
             let summaryHTML = `<p><strong>Total Check-ins:</strong> ${summaryData.total_checkins}</p>`;
-            if (summaryData.total_checkins > 0 && summaryData.reason_breakdown) {
-                summaryHTML += '<p class="mb-1"><strong>Reason Breakdown:</strong></p><ul class="list-unstyled mb-0 small">';
-                const sortedReasons = Object.keys(summaryData.reason_breakdown).sort();
+            // Reason Breakdown
+            if (summaryData.total_checkins > 0 && summaryData.reason_breakdown && Object.keys(summaryData.reason_breakdown).length > 0) {
+                summaryHTML += '<p class="mb-1 mt-3"><strong>Reason Breakdown:</strong></p><ul class="list-unstyled mb-0 small">'; // Added mt-3 for spacing
+                const sortedReasons = Object.keys(summaryData.reason_breakdown).sort(); 
                 sortedReasons.forEach(reason => {
                     summaryHTML += `<li>${reason}: ${summaryData.reason_breakdown[reason]}</li>`;
                 });
                 summaryHTML += '</ul>';
-            } else if (summaryData.total_checkins === 0) {
+            }
+
+            // === ADD BUSINESS LINE BREAKDOWN ===
+            if (summaryData.total_checkins > 0 && summaryData.business_line_breakdown && Object.keys(summaryData.business_line_breakdown).length > 0) {
+                summaryHTML += '<p class="mb-1 mt-3"><strong>Business Line Breakdown:</strong></p><ul class="list-unstyled mb-0 small">'; // Added mt-3 for spacing
+                const sortedBusinessLines = Object.keys(summaryData.business_line_breakdown).sort(); 
+                sortedBusinessLines.forEach(bl => {
+                    summaryHTML += `<li>${bl}: ${summaryData.business_line_breakdown[bl]}</li>`;
+                });
+                summaryHTML += '</ul>';
+            }
+            // === END BUSINESS LINE BREAKDOWN ===
+            
+            else if (summaryData.total_checkins === 0) {
                  summaryHTML += '<p><small class="text-muted">No check-ins recorded for this month.</small></p>';
             }
 
