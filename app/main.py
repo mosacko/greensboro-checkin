@@ -205,7 +205,7 @@ def admin_logout(response: Response):
 
 # Inside app/main.py
 
-app.get("/admin", response_class=HTMLResponse)
+@app.get("/admin", response_class=HTMLResponse)
 def admin_dashboard(request: Request, db: Session = Depends(get_db)):
     """Shows the main admin dashboard with attendance records grouped by month and reason."""
     
