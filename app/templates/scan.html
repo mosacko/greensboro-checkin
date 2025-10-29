@@ -22,7 +22,7 @@
                         <p class="fs-5">Site: <strong>{{ site | title }}</strong></p>
                     </div>
 
-                    {# === ADD THIS DROPDOWN SECTION === #}
+                    {# === ADD VISIT DROPDOWN SECTION === #}
                     <div class="mb-3"> 
                       <label for="visit_reason" class="form-label">Reason for Visit:</label>
                       <select id="visit_reason" name="visit_reason" required class="form-select">
@@ -35,6 +35,24 @@
                       </select>
                     </div>
                     {# === END DROPDOWN SECTION === #}
+
+                    {# === ADD BUSINESS LINE DROPDOWN === #}
+                    <div class="mb-3">
+                      <label for="business_line" class="form-label">Business Line:</label>
+                      <select id="business_line" name="business_line" required class="form-select">
+                        <option value="" disabled selected>-- Select Business Line --</option>
+                        {# --- ADD CLIENT'S BUSINESS LINES HERE --- #}
+                        <option value="Transportation">Transportation</option>
+                        <option value="Buildings">Buildings</option>
+                        <option value="Environment">Environment</option>
+                        <option value="Water">Water</option>
+                        <option value="Advisory">Advisory</option>
+                        <option value="Corporate/Admin">Corporate/Admin</option>
+                        <option value="N/A">N/A - Not Applicable</option>
+                        {# -------------------------------------- #}
+                      </select>
+                    </div>
+                    {# === END BUSINESS LINE DROPDOWN === #}
 
                     <div class="d-grid">
                         <button type="submit" id="submit-button" class="btn btn-primary btn-lg">Submit Check-in</button>
@@ -91,12 +109,25 @@ document.addEventListener('DOMContentLoaded', function() {
           e.preventDefault();
           const statusMessage = document.getElementById('status-message');
           const visitReasonSelect = document.getElementById('visit_reason'); // Get reason select element
+          const businessLineSelect = document.getElementById('business_line'); // Get Business Line element
 
           // --- GET VISIT REASON ---
           const visitReason = visitReasonSelect ? visitReasonSelect.value : null; // Check if element exists
+          const businessLine = businessLineSelect ? businessLineSelect.value : null; // Get selected Business Line
+
           if (!visitReason) { // Basic validation
               if (statusMessage) { // Check if status message element exists
                 statusMessage.textContent='Please select a reason for visit.';
+                statusMessage.style.color='red';
+              }
+              return;
+          }
+          // -------------------------
+
+          // --- GET VISIT REASON ---
+          if (!businessLine) { // Basic validation
+              if (statusMessage) { // Check if status message element exists
+                statusMessage.textContent='Please select a business line.';
                 statusMessage.style.color='red';
               }
               return;
@@ -115,7 +146,8 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             nameText: null,
             signatureDataUrl: null,
-            visitReason: visitReason // --- INCLUDE VISIT REASON ---
+            visitReason: visitReason, // --- INCLUDE VISIT REASON ---
+            businessLine: businessLine // --- INCLUDE BUSINESS LINE ---
           };
 
           // --- ADD THIS LINE ---

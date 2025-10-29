@@ -31,6 +31,7 @@ class FinalizePayload(BaseModel):
     nameText: Optional[str] = None
     signatureDataUrl: Optional[str] = None
     visit_reason: Optional[str] = Field(None, alias='visitReason')
+    business_line: Optional[str] = Field(None, alias='businessLine')
 
 # --- Routes ---
 
@@ -146,6 +147,7 @@ async def finalize(payload: FinalizePayload, request: Request, db: Session = Dep
     # --- ADD THIS LINE ---
     rec.visit_reason = payload.visit_reason # Assign the reason from the payload
     # ---------------------
+    rec.business_line = payload.business_line
 
     if payload.geo:
         rec.geo_lat = payload.geo.lat

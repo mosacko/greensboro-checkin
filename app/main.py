@@ -228,6 +228,7 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
     formatted_records = []
     records_by_month = defaultdict(list)
     records_by_reason = defaultdict(list)
+    records_by_business_line = defaultdict(list)
     
     for rec in all_records_raw:
         # Format timestamp
@@ -250,6 +251,7 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
             "event_type": rec.event_type,
             "user_name": rec.user_name,
             "visit_reason": rec.visit_reason, 
+            "business_line": rec.business_line,
             "device_local_id": rec.device_local_id,
             "geo_lat": rec.geo_lat,
             "geo_lon": rec.geo_lon,
@@ -263,6 +265,11 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
         # --- Group by Reason ---
         reason_key = rec.visit_reason if rec.visit_reason else "N/A" # Group None/empty as "N/A"
         records_by_reason[reason_key].append(formatted_rec)
+
+        # --- Group by Business Line ---
+        business_line_key = rec.business_line if rec.business_line else "N/A"
+        records_by_business_line[business_line_key].append(formatted_rec)
+        # ----------------------------
         
     # Sort month keys (most recent first)
     sorted_months = sorted([m for m in records_by_month.keys() if m != "Unknown Month"], reverse=True)
@@ -275,6 +282,12 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
         sorted_reasons.append("N/A")
     # ------------------------------------
 
+    # --- Sort Business Lines ---
+    sorted_business_lines = sorted([bl for bl in records_by_business_line.keys() if bl != "N/A"])
+    if "N/A" in records_by_business_line:
+        sorted_business_lines.append("N/A")
+    # ---------------------------
+
     return templates.TemplateResponse(
         "admin.html", 
         {
@@ -282,7 +295,9 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
             "records_by_month": records_by_month, 
             "sorted_months": sorted_months,     
             "records_by_reason": records_by_reason, 
-            "sorted_reasons": sorted_reasons,     
+            "sorted_reasons": sorted_reasons,
+            "records_by_business_line": records_by_business_line, # <-- PASS NEW DATA
+            "sorted_business_lines": sorted_business_lines,      # <-- PASS NEW DATA     
             "all_records": formatted_records,
             "datetime": datetime # <-- ADD THIS TO PASS DATETIME OBJECT
         }

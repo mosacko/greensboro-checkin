@@ -36,6 +36,7 @@ class Attendance(Base):
     user_email = Column(String(320), nullable=True, index=True) # Add email, index for faster lookups
 
     visit_reason = Column(String(50), nullable=True) # Reason for visit
+    business_line = Column(String(100), nullable=True) # Business Line
     
     source = Column(String(32), nullable=False, default="qr")
     user_agent = Column(Text)
