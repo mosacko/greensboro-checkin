@@ -154,7 +154,18 @@ async def finalize(payload: FinalizePayload, request: Request, db: Session = Dep
     if rec.is_valid is None:
          rec.is_valid = True
 
-    db.add(rec)
-    db.commit()
+    try: # Add try/except around commit for better error logging
+        db.add(rec)
+        db.commit()
+
+        # --- ADD REFRESH AND LOGGING ---
+        db.refresh(rec) 
+        print(f"Record AFTER commit & refresh: ID={rec.id}, Name={rec.user_name}, Reason={rec.visit_reason}")
+        # -------------------------------
+
+    except Exception as e:
+        db.rollback()
+        print(f"ERROR during finalize commit: {e}")
+        raise HTTPException(status_code=500, detail="Database commit failed during finalize.")
 
     return {"ok": True, "token": payload.token}
