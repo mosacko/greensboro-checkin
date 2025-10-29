@@ -6,12 +6,14 @@
     <h1 class="mb-3">Check-ins Calendar</h1>
     <div class="logout mb-4"><a href="/admin/logout">Logout</a></div>
 
+    {# --- Main Row: Calendar and Side Panel Placeholder --- #}
     <div class="row">
         {# Calendar Area #}
         <div class="col-md-8">
             <div class="card mb-4">
+                {# Remove card header if title is redundant #}
+                {# <div class="card-header"><h2>Calendar View</h2></div> #}
                 <div class="card-body">
-                    {# Div where FullCalendar will render #}
                     <div id='calendar'></div> 
                 </div>
             </div>
@@ -19,13 +21,16 @@
 
         {# Side Panel Area - Monthly Summary and Offcanvas Definition #}
         <div class="col-md-4">
-            {# --- Monthly Summary Panel (Visible by default) --- #}
-            <div class="card" id="monthlySummaryPanel">
+            {# --- Monthly Summary Panel (Replaces old placeholder) --- #}
+            <div class="card mb-4" id="monthlySummaryPanel">
                 <div class="card-header">
-                    <h5 class="mb-0">Monthly Summary</h5>
+                    <h5 class="mb-0" id="summaryMonthTitle">Monthly Summary</h5> {# Add ID for month name #}
                 </div>
                 <div class="card-body">
-                    <p id="summaryContent">Loading summary...</p> 
+                    {# Div to hold the dynamic summary content #}
+                    <div id="summaryContent"> 
+                        <p class="text-muted">Loading summary...</p> 
+                    </div>
                 </div>
             </div>
             {# --- END Monthly Summary --- #}
@@ -39,12 +44,11 @@
               <div class="offcanvas-body">
                 <ul class="list-group list-group-flush" id="attendanceList">
                   {# List items will be added here by JavaScript #}
-                  <li class="list-group-item">Loading...</li>
                 </ul>
               </div>
             </div>
         </div> {# End col-md-4 #}
-    </div>{# --- End Row 1 --- #}
+    </div>{# --- End Main Row --- #}
 
     {# --- CARD 1: Monthly Accordion --- #}
     <div class="card mb-4">
@@ -221,130 +225,151 @@
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js'></script>
     
     <script>
-      // Wait for the DOM to be ready
-      document.addEventListener('DOMContentLoaded', function() {
-        const calendarEl = document.getElementById('calendar');
-        // Offcanvas elements
-        const offcanvasElement = document.getElementById('attendanceOffcanvas');
-        const offcanvasTitle = document.getElementById('attendanceOffcanvasLabel');
-        const attendanceList = document.getElementById('attendanceList');
-        const attendanceOffcanvas = new bootstrap.Offcanvas(offcanvasElement); 
-        // Monthly Summary elements
-        const monthlySummaryPanel = document.getElementById('monthlySummaryPanel');
-        const summaryContent = document.getElementById('summaryContent');
+  // Wait for the DOM to be ready
+  document.addEventListener('DOMContentLoaded', function() {
+    const calendarEl = document.getElementById('calendar');
+    // Offcanvas elements
+    const offcanvasElement = document.getElementById('attendanceOffcanvas');
+    const offcanvasTitle = document.getElementById('attendanceOffcanvasLabel');
+    const attendanceList = document.getElementById('attendanceList');
+    const attendanceOffcanvas = new bootstrap.Offcanvas(offcanvasElement);
+    // Monthly Summary elements
+    const summaryMonthTitle = document.getElementById('summaryMonthTitle');
+    const summaryContent = document.getElementById('summaryContent');
 
-        // --- Function to fetch and display Monthly Summary ---
-        async function updateMonthlySummary(date) {
-            const year = date.getFullYear();
-            const month = (date.getMonth() + 1).toString().padStart(2, '0'); 
-            const yearMonth = `${year}-${month}`;
-            
-            if (summaryContent) summaryContent.innerHTML = 'Loading summary...'; 
+    // --- Function to fetch and display Monthly Summary ---
+    async function updateMonthlySummary(date) {
+        // Format date as YYYY-MM
+        const year = date.getFullYear();
+        // +1 because getMonth is 0-indexed, padStart ensures 2 digits (e.g., 09)
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const yearMonth = `${year}-${month}`;
 
-            try {
-                const response = await fetch(`/api/metrics/monthly_summary/${yearMonth}`);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const summaryData = await response.json();
+        // Update summary title with full month name and year
+        const monthName = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+        if (summaryMonthTitle) summaryMonthTitle.textContent = `Summary for ${monthName}`;
 
-                let summaryHTML = `<p><strong>Total Check-ins:</strong> ${summaryData.total_checkins}</p>`;
-                if (summaryData.total_checkins > 0 && summaryData.reason_breakdown) {
-                    summaryHTML += '<p class="mb-1"><strong>Reason Breakdown:</strong></p><ul class="list-unstyled mb-0 small">'; // Use smaller text
-                    const sortedReasons = Object.keys(summaryData.reason_breakdown).sort(); 
-                    sortedReasons.forEach(reason => {
-                        summaryHTML += `<li>${reason}: ${summaryData.reason_breakdown[reason]}</li>`;
-                    });
-                    summaryHTML += '</ul>';
-                } else if (summaryData.total_checkins == 0) {
-                     summaryHTML += '<p><small>No check-ins recorded for this month.</small></p>';
-                }
+        if (summaryContent) summaryContent.innerHTML = '<p class="text-muted small">Loading summary...</p>'; // Show loading state
 
-                if (summaryContent) summaryContent.innerHTML = summaryHTML;
+        try {
+            const response = await fetch(`/api/metrics/monthly_summary/${yearMonth}`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const summaryData = await response.json();
 
-            } catch (error) {
-                console.error("Could not fetch monthly summary:", error);
-                if (summaryContent) summaryContent.innerHTML = '<p class="text-danger small">Error loading monthly summary.</p>';
-            }
-        }
-        // --- End Monthly Summary function ---
-
-        // --- Initialize FullCalendar ---
-        const calendar = new FullCalendar.Calendar(calendarEl, {
-          initialView: 'dayGridMonth', // Start with month view
-          headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay' // Optional views
-          },
-          editable: false, // Don't allow dragging events (we don't have events yet)
-          selectable: false, // Don't allow selecting date ranges
-          
-          // --- Handle Date Click ---
-          dateClick: async function(info) {
-            // info.dateStr will be 'YYYY-MM-DD'
-            const dateStr = info.dateStr;
-            console.log('Date clicked: ' + dateStr);
-
-            // Update Offcanvas title
-            offcanvasTitle.textContent = `Check-ins for ${dateStr}`;
-            
-            // Show loading state in Offcanvas
-            attendanceList.innerHTML = '<li class="list-group-item">Loading...</li>'; 
-            sidePanelPlaceholder.style.display = 'none'; // Hide placeholder
-            attendanceOffcanvas.show(); // Show the Offcanvas panel
-
-            try {
-              // Fetch data for the clicked date
-              const response = await fetch(`/api/metrics/attendance/${dateStr}`);
-              if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-              }
-              const records = await response.json();
-
-              // Clear previous list items
-              attendanceList.innerHTML = ''; 
-
-              if (records.length === 0) {
-                attendanceList.innerHTML = '<li class="list-group-item fst-italic text-muted">No check-ins found for this date.</li>';
-              } else {
-                // Populate the list in the Offcanvas
-                records.forEach(rec => {
-                  const listItem = document.createElement('li');
-                  listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
-                  
-                  // Format time using browser's locale settings
-                  let timeStr = 'N/A';
-                  if (rec.timestamp_utc) {
-                      try {
-                          timeStr = new Date(rec.timestamp_utc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-                      } catch(e) { console.error("Error formatting date:", e); }
-                  }
-
-                  listItem.innerHTML = `
-                    <span>
-                      <strong>${rec.user_name || 'Unknown User'}</strong>
-                      <small class="text-muted ms-2">(${rec.site ? rec.site.charAt(0).toUpperCase() + rec.site.slice(1) : 'N/A'})</small>
-                      <small class="text-muted ms-2 fst-italic">[${rec.visit_reason || 'N/A'}]</small>
-                    </span>
-                    <span class="badge bg-secondary rounded-pill">${timeStr}</span>
-                  `;
-                  attendanceList.appendChild(listItem);
+            // Build HTML for the summary
+            let summaryHTML = `<p><strong>Total Check-ins:</strong> ${summaryData.total_checkins}</p>`;
+            if (summaryData.total_checkins > 0 && summaryData.reason_breakdown) {
+                summaryHTML += '<p class="mb-1"><strong>Reason Breakdown:</strong></p><ul class="list-unstyled mb-0 small">';
+                const sortedReasons = Object.keys(summaryData.reason_breakdown).sort();
+                sortedReasons.forEach(reason => {
+                    summaryHTML += `<li>${reason}: ${summaryData.reason_breakdown[reason]}</li>`;
                 });
-              }
-            } catch (error) {
-              console.error("Could not fetch attendance data:", error);
-              attendanceList.innerHTML = '<li class="list-group-item text-danger">Error loading data.</li>';
+                summaryHTML += '</ul>';
+            } else if (summaryData.total_checkins === 0) {
+                 summaryHTML += '<p><small class="text-muted">No check-ins recorded for this month.</small></p>';
             }
-          } 
-          // --- End Date Click Handler ---
-          
-        }); // End Calendar initialization
 
-        // Render the calendar
-        calendar.render();
+            if (summaryContent) summaryContent.innerHTML = summaryHTML;
 
-        // Optional: Hide Offcanvas when calendar view changes?
-        // calendar.on('viewDidMount', function() { attendanceOffcanvas.hide(); });
+        } catch (error) {
+            console.error("Could not fetch monthly summary:", error);
+            if (summaryContent) summaryContent.innerHTML = '<p class="text-danger small">Error loading monthly summary.</p>';
+        }
+    }
+    // --- End Monthly Summary function ---
 
-      }); // End DOMContentLoaded
-    </script>
+    // --- Initialize FullCalendar ---
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,listWeek' // Added list view
+      },
+      editable: false,
+      selectable: false,
+
+      // --- Handle Date Click (for Offcanvas daily details) ---
+      dateClick: async function(info) {
+        const dateStr = info.dateStr; // 'YYYY-MM-DD'
+        console.log('Date clicked: ' + dateStr);
+
+        // Update Offcanvas title
+        if (offcanvasTitle) offcanvasTitle.textContent = `Check-ins for ${dateStr}`;
+
+        // Show loading state in Offcanvas
+        if (attendanceList) attendanceList.innerHTML = '<li class="list-group-item">Loading...</li>';
+
+        // Show the Offcanvas panel
+        attendanceOffcanvas.show();
+
+        try {
+          // Fetch data for the clicked date
+          const response = await fetch(`/api/metrics/attendance/${dateStr}`);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const records = await response.json();
+
+          // Clear previous list items
+          if (attendanceList) attendanceList.innerHTML = '';
+
+          if (records.length === 0) {
+            if (attendanceList) attendanceList.innerHTML = '<li class="list-group-item fst-italic text-muted">No check-ins found for this date.</li>';
+          } else {
+            // Populate the list in the Offcanvas
+            records.forEach(rec => {
+              const listItem = document.createElement('li');
+              listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+
+              // Format time using browser's locale settings (e.g., 10:30 AM)
+              let timeStr = 'N/A';
+              if (rec.timestamp_utc) {
+                  try {
+                      timeStr = new Date(rec.timestamp_utc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                  } catch(e) { console.error("Error formatting date:", e); }
+              }
+
+              // Set the content for the list item
+              listItem.innerHTML = `
+                <span>
+                  <strong>${rec.user_name || 'Unknown User'}</strong>
+                  <small class="text-muted ms-2">(${rec.site ? rec.site.charAt(0).toUpperCase() + rec.site.slice(1) : 'N/A'})</small>
+                  <small class="text-muted ms-2 fst-italic">[${rec.visit_reason || 'N/A'}]</small>
+                </span>
+                <span class="badge bg-secondary rounded-pill">${timeStr}</span>
+              `;
+              if (attendanceList) attendanceList.appendChild(listItem);
+            });
+          }
+        } catch (error) {
+          console.error("Could not fetch attendance data:", error);
+          if (attendanceList) attendanceList.innerHTML = '<li class="list-group-item text-danger">Error loading data.</li>';
+        }
+      }, // --- End Date Click Handler ---
+
+      // --- Handle View/Date Change (for Monthly Summary Panel) ---
+      datesSet: function(dateInfo) {
+          // Get a date within the current month view (use midpoint for safety)
+          const start = dateInfo.view.currentStart;
+          const end = dateInfo.view.currentEnd;
+          const midMonthDate = new Date(start.getTime() + (end.getTime() - start.getTime()) / 2);
+
+          console.log("Calendar view changed. Updating summary for month of:", midMonthDate);
+          updateMonthlySummary(midMonthDate);
+      } // --- End datesSet Handler ---
+
+    }); // End Calendar initialization
+
+    // Render the calendar
+    calendar.render();
+
+    // --- Explicitly load summary for the initial month ---
+    // (datesSet usually fires on load, but this ensures it)
+    console.log("Initial load. Updating summary for:", calendar.getDate());
+    updateMonthlySummary(calendar.getDate());
+    // ---------------------------------------------------
+
+  }); // End DOMContentLoaded
+</script>
 {% endblock %}
