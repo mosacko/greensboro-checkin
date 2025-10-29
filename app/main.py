@@ -247,6 +247,8 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
             "device_local_id": rec.device_local_id,
             "geo_lat": rec.geo_lat,
             "geo_lon": rec.geo_lon,
+            "visit_reason": rec.visit_reason,
+            "local_date": rec.local_date, # Add local date
             # Add other fields if your template uses them
         }
         formatted_records.append(formatted_rec)
