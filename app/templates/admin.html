@@ -43,9 +43,7 @@
                                                 <small class="text-muted ms-2">({{ rec.site | title }})</small>
                                             </span>
                                             <span class="badge bg-secondary rounded-pill">
-                                                {# --- CHANGE THIS LINE --- #}
                                                 {{ rec.timestamp_display }} 
-                                                {# ------------------------ #}
                                             </span>
                                         </li>
                                         {% endfor %}
@@ -88,7 +86,7 @@
                     <thead class="table-dark">
                         <tr>
                             <th>ID</th>
-                            <th>Timestamp</th> {# Displaying formatted EST/EDT #}
+                            <th>Timestamp</th>
                             <th>Site</th>
                             <th>Event Type</th>
                             <th>User Name</th>
@@ -98,7 +96,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for rec in all_records %} {# Assuming main.py passes all_records with formatted data #}
+                        {% for rec in all_records %}
                         <tr>
                             <td>{{ rec.id }}</td>
                             <td>{{ rec.timestamp_display }}</td>
@@ -126,7 +124,7 @@
     {# --- END All Records Card --- #}
 
     {# --- Part 2: JavaScript Logic --- #}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> {# Include the library #}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
 
     <script>
         async function createDailyCheckinsChart() {
