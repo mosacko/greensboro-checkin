@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func, cast, Date # Import necessary SQLAlchemy functions
+from sqlalchemy import func, cast, date # Import necessary SQLAlchemy functions
 from datetime import datetime, timedelta, timezone # Import date/time functions
 import re # Import regular expression module for date validation
 
@@ -26,12 +26,12 @@ def get_daily_checkins_last_week(db: Session = Depends(get_db)):
     # Query the database: Count Attendance records, group by date
     results = (
         db.query(
-            cast(Attendance.timestamp_utc, Date).label("checkin_date"), # Extract date part
+            cast(Attendance.timestamp_utc, date).label("checkin_date"), # Extract date part
             func.count(Attendance.id).label("count")                 # Count records
         )
         .filter(
-            cast(Attendance.timestamp_utc, Date) >= seven_days_ago, # Filter by date range
-            cast(Attendance.timestamp_utc, Date) <= today,
+            cast(Attendance.timestamp_utc, date) >= seven_days_ago, # Filter by date range
+            cast(Attendance.timestamp_utc, date) <= today,
             Attendance.event_type == "check_in",                    # Only count check-ins
             Attendance.is_valid == True                             # Only count valid entries
         )
