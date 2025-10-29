@@ -16,7 +16,7 @@ from app.models import Attendance, Employee
 NUM_EMPLOYEES = 20
 NUM_DAYS = 90
 CHECK_IN_RATE = 0.75 # 75%
-SITE_CODE = "greensboro" 
+SITE_CODE = "greenville" 
 # --- ADD VISIT REASONS ---
 VISIT_REASONS = ["Work", "Visit", "Client Meeting", "Internal Meeting", "Other"]
 # ---------------------
