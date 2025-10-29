@@ -218,6 +218,7 @@
                             <th>Event Type</th>
                             <th>User Name</th>
                             <th>Reason</th>
+                            <th>Business</th>
                             <th>Device ID</th>
                             <th>Geo (Lat, Lon)</th>
                         </tr>
@@ -231,6 +232,7 @@
                             <td>{{ rec.event_type }}</td>
                             <td>{{ rec.user_name or 'N/A' }}</td>
                             <td>{{ rec.visit_reason or 'Not Found' }}</td>
+                            <td>{{ rec.business_line or 'Not Found' }}</td>
                             <td>{{ rec.device_local_id or 'N/A' }}</td>
                             <td>
                                 {% if rec.geo_lat and rec.geo_lon %}

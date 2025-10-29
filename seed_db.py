@@ -19,6 +19,8 @@ CHECK_IN_RATE = 0.75 # 75%
 SITE_CODE = "greenville" 
 # --- ADD VISIT REASONS ---
 VISIT_REASONS = ["Work", "Visit", "Client Meeting", "Internal Meeting", "Other"]
+BUSINESS_LINES = ["Transportation", "Buildings", "Environment", "Water", "Advisory", "Corporate/Admin"]
+
 # ---------------------
 
 # Setup database connection
@@ -91,6 +93,10 @@ try:
                 chosen_reason = random.choice(VISIT_REASONS)
                 # -----------------------------
 
+                # --- CHOOSE BUSINESS LINE ---
+                chosen_business = random.choice(BUSINESS_LINES)
+                # -----------------------------
+
                 attendance_records.append(Attendance(
                     timestamp_utc=timestamp_utc,
                     local_date=current_date_str,
@@ -99,6 +105,7 @@ try:
                     user_name=employee.display_name,
                     user_email=employee.email,
                     visit_reason=chosen_reason, # <-- ADD THE REASON HERE
+                    business_line=chosen_business, # <-- ADD BUSINESS LINE HERE
                     source="dummy_data",
                     is_valid=True
                 ))
