@@ -6,6 +6,42 @@
     <h1 class="mb-3">Attendance Records</h1>
     <div class="logout mb-4"><a href="/admin/logout">Logout</a></div>
 
+    <div class="row">
+        {# Calendar Area #}
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    {# Div where FullCalendar will render #}
+                    <div id='calendar'></div> 
+                </div>
+            </div>
+        </div>
+
+        {# Side Panel Area (Initially Hidden) #}
+        <div class="col-md-4">
+            {# Using Bootstrap Offcanvas for the side panel #}
+            <div class="offcanvas offcanvas-end" tabindex="-1" id="attendanceOffcanvas" aria-labelledby="attendanceOffcanvasLabel">
+              <div class="offcanvas-header">
+                <h5 class="offcanvas-title" id="attendanceOffcanvasLabel">Check-ins for YYYY-MM-DD</h5>
+                <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+              </div>
+              <div class="offcanvas-body">
+                {# Content will be populated by JavaScript #}
+                <p>Loading...</p>
+                <ul class="list-group" id="attendanceList">
+                  {# List items will be added here #}
+                </ul>
+              </div>
+            </div>
+            {# Add a placeholder or instructions when no date is selected #}
+            <div class="card" id="sidePanelPlaceholder">
+                <div class="card-body text-center text-muted">
+                    <p>Click a date on the calendar to view check-ins.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {# --- CARD 1: Monthly Accordion --- #}
     <div class="card mb-4">
         <div class="card-header">
@@ -173,51 +209,103 @@
         </div>
     </div>
     {# --- END All Records Card --- #}
+{% endblock %}
 
+{% block scripts %} {# Add a separate block for scripts at the end of body #}
     {# --- Part 2: JavaScript Logic --- #}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
-
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js'></script>
+    
     <script>
-        async function createDailyCheckinsChart() {
-            try {
-                const response = await fetch('/api/metrics/daily_checkins_last_week');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const chartData = await response.json();
-                const ctx = document.getElementById('dailyCheckinsChart').getContext('2d');
+      // Wait for the DOM to be ready
+      document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('calendar');
+        const offcanvasElement = document.getElementById('attendanceOffcanvas');
+        const offcanvasTitle = document.getElementById('attendanceOffcanvasLabel');
+        const attendanceList = document.getElementById('attendanceList');
+        const sidePanelPlaceholder = document.getElementById('sidePanelPlaceholder');
+        
+        // Ensure Bootstrap Offcanvas is initialized if needed (usually automatic with data attributes)
+        const attendanceOffcanvas = new bootstrap.Offcanvas(offcanvasElement);
 
-                new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: chartData.labels,
-                        datasets: [{
-                            label: '# of Check-ins',
-                            data: chartData.data,
-                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                            borderColor: 'rgba(54, 162, 235, 1)',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: { stepSize: 1 }
-                            }
-                        },
-                        responsive: true,
-                        plugins: { /* ... your plugin options ... */ }
-                    }
+        // --- Initialize FullCalendar ---
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: 'dayGridMonth', // Start with month view
+          headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay' // Optional views
+          },
+          editable: false, // Don't allow dragging events (we don't have events yet)
+          selectable: false, // Don't allow selecting date ranges
+          
+          // --- Handle Date Click ---
+          dateClick: async function(info) {
+            // info.dateStr will be 'YYYY-MM-DD'
+            const dateStr = info.dateStr;
+            console.log('Date clicked: ' + dateStr);
+
+            // Update Offcanvas title
+            offcanvasTitle.textContent = `Check-ins for ${dateStr}`;
+            
+            // Show loading state in Offcanvas
+            attendanceList.innerHTML = '<li class="list-group-item">Loading...</li>'; 
+            sidePanelPlaceholder.style.display = 'none'; // Hide placeholder
+            attendanceOffcanvas.show(); // Show the Offcanvas panel
+
+            try {
+              // Fetch data for the clicked date
+              const response = await fetch(`/api/metrics/attendance/${dateStr}`);
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              const records = await response.json();
+
+              // Clear previous list items
+              attendanceList.innerHTML = ''; 
+
+              if (records.length === 0) {
+                attendanceList.innerHTML = '<li class="list-group-item fst-italic text-muted">No check-ins found for this date.</li>';
+              } else {
+                // Populate the list in the Offcanvas
+                records.forEach(rec => {
+                  const listItem = document.createElement('li');
+                  listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+                  
+                  // Format time using browser's locale settings
+                  let timeStr = 'N/A';
+                  if (rec.timestamp_utc) {
+                      try {
+                          timeStr = new Date(rec.timestamp_utc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                      } catch(e) { console.error("Error formatting date:", e); }
+                  }
+
+                  listItem.innerHTML = `
+                    <span>
+                      <strong>${rec.user_name || 'Unknown User'}</strong>
+                      <small class="text-muted ms-2">(${rec.site ? rec.site.charAt(0).toUpperCase() + rec.site.slice(1) : 'N/A'})</small>
+                      <small class="text-muted ms-2 fst-italic">[${rec.visit_reason || 'N/A'}]</small>
+                    </span>
+                    <span class="badge bg-secondary rounded-pill">${timeStr}</span>
+                  `;
+                  attendanceList.appendChild(listItem);
                 });
+              }
             } catch (error) {
-                console.error("Could not fetch or create chart:", error);
-                const chartElement = document.getElementById('dailyCheckinsChart');
-                if(chartElement) {
-                    chartElement.outerHTML = '<p class="text-danger">Could not load daily check-ins chart.</p>';
-                }
+              console.error("Could not fetch attendance data:", error);
+              attendanceList.innerHTML = '<li class="list-group-item text-danger">Error loading data.</li>';
             }
-        }
-        createDailyCheckinsChart();
+          } 
+          // --- End Date Click Handler ---
+          
+        }); // End Calendar initialization
+
+        // Render the calendar
+        calendar.render();
+
+        // Optional: Hide Offcanvas when calendar view changes?
+        // calendar.on('viewDidMount', function() { attendanceOffcanvas.hide(); });
+
+      }); // End DOMContentLoaded
     </script>
 {% endblock %}
