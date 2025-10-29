@@ -70,7 +70,7 @@
                         
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="{{ header_id }}">
-                                <button class="accordion-button {% if loop.index > 1 %}collapsed{% endif %}" 
+                                <button class="accordion-button collapsed" {# Start all collapsed #}
                                         type="button" data-bs-toggle="collapse" data-bs-target="#{{ accordion_id }}" 
                                         aria-expanded="false" aria-controls="{{ accordion_id }}">
                                     {{ display_month }} - ({{ records_for_month | length }} Check-ins)
