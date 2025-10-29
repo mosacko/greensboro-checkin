@@ -3,7 +3,7 @@
 {% block title %}Admin Dashboard{% endblock %}
 
 {% block content %}
-<div class="card-header"><h1 align="center">GREENVILLE CHECK-INS DASHBOARD</h1></div>
+<div class="dashboard_title"><h1 align="center">GREENVILLE CHECK-INS DASHBOARD</h1></div>
 <style>
     body {
         /* Apply a light gray background to the whole page content area */
@@ -14,6 +14,12 @@
         background-color: #CE0037; /* Approximate WSP Red */
         color: white; /* Make text white for contrast */
     }
+    .dashboard_title {
+        background-color: #000; /* Approximate WSP Red */
+        color: white; /* Make text white for contrast */
+        margin-bottom: 25px;
+    }
+    
     .card-header h3, .card-header h5 {
         /* Ensure header text inside card-header is also white */
         color: white;
