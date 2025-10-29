@@ -205,101 +205,86 @@ def admin_logout(response: Response):
 
 # Inside app/main.py
 
-@app.get("/admin", response_class=HTMLResponse)
+app.get("/admin", response_class=HTMLResponse)
 def admin_dashboard(request: Request, db: Session = Depends(get_db)):
-    """Shows the main admin dashboard with attendance records grouped by date."""
+    """Shows the main admin dashboard with attendance records grouped by month and reason."""
     
     if request.cookies.get("admin_auth") != "super_secret_token":
         return RedirectResponse(url="/admin/login")
     
     # Fetch all valid check-in records, most recent first
-    all_records = db.query(Attendance)\
-                    .filter(Attendance.event_type == "check_in", Attendance.is_valid == True)\
-                    .order_by(Attendance.timestamp_utc.desc())\
-                    .all()
-
-    # --- Format Timestamps for Display ---
+    all_records_raw = db.query(Attendance)\
+                        .filter(Attendance.event_type == "check_in", Attendance.is_valid == True)\
+                        .order_by(Attendance.timestamp_utc.desc())\
+                        .all()
+    
+    # --- Format Timestamps and Prepare Data ---
     try:
         est_zone = ZoneInfo("America/New_York")
     except Exception:
-        est_zone = timezone.utc # Fallback to UTC if zoneinfo fails
+        est_zone = timezone.utc 
         print("WARNING: Could not load America/New_York timezone. Falling back to UTC.")
 
     formatted_records = []
+    records_by_month = defaultdict(list)
+    records_by_reason = defaultdict(list)
     
-    for rec in all_records:
+    for rec in all_records_raw:
+        # Format timestamp
         if rec.timestamp_utc:
-            # Convert UTC time to EST/EDT
             timestamp_est = rec.timestamp_utc.astimezone(est_zone)
-            # Create a formatted string
-            est_str = timestamp_est.strftime('%Y-%m-%d %H:%M:%S %Z') # Includes timezone abbr (EST/EDT)
+            est_str = timestamp_est.strftime('%Y-%m-%d %H:%M:%S %Z') 
+            month_key = timestamp_est.strftime('%Y-%m') # Key for month grouping (e.g., "2025-10")
+            record_date = timestamp_est.date() # Get date object for sorting later if needed
         else:
             est_str = 'N/A'
+            month_key = "Unknown Month"
+            record_date = None # Cannot determine date
 
-        # Create a dictionary or object copy to avoid modifying the original SQLAlchemy object
+        # Create dictionary for easier template access
         formatted_rec = {
             "id": rec.id,
-            "timestamp_utc": rec.timestamp_utc, # Keep original UTC if needed elsewhere
-            "timestamp_display": est_str,      # Add the formatted string
+            "timestamp_utc": rec.timestamp_utc, 
+            "timestamp_display": est_str,      
             "site": rec.site,
             "event_type": rec.event_type,
             "user_name": rec.user_name,
+            "visit_reason": rec.visit_reason, 
             "device_local_id": rec.device_local_id,
             "geo_lat": rec.geo_lat,
             "geo_lon": rec.geo_lon,
-            "visit_reason": rec.visit_reason,
-            "local_date": rec.local_date, # Add local date
-            # Add other fields if your template uses them
+            "date_obj": record_date # Store date object if needed
         }
         formatted_records.append(formatted_rec)
+        
+        # --- Group by Month ---
+        records_by_month[month_key].append(formatted_rec)
+        
+        # --- Group by Reason ---
+        reason_key = rec.visit_reason if rec.visit_reason else "N/A" # Group None/empty as "N/A"
+        records_by_reason[reason_key].append(formatted_rec)
+        
+    # Sort month keys (most recent first)
+    sorted_months = sorted([m for m in records_by_month.keys() if m != "Unknown Month"], reverse=True)
+    if "Unknown Month" in records_by_month:
+        sorted_months.append("Unknown Month")
+        
+    # Sort reason keys (alphabetical, N/A last?)
+    sorted_reasons = sorted([r for r in records_by_reason.keys() if r != "N/A"])
+    if "N/A" in records_by_reason:
+        sorted_reasons.append("N/A")
     # ------------------------------------
-    
-    # --- Group records by date ---
-    records_by_date = defaultdict(list)
-    # Iterate over the list of dictionaries now
-    for formatted_rec in formatted_records:  # <--- CHANGE HERE
-        # Get the date string from the dictionary
-        record_date_str = formatted_rec.get("local_date") 
-        if not record_date_str and formatted_rec.get("timestamp_utc"):
-            try:
-                # Use UTC timestamp if local_date is missing in dict
-                 record_date_str = formatted_rec["timestamp_utc"].strftime('%Y-%m-%d')
-            except Exception:
-                 record_date_str = None # Handle potential errors
 
-        if record_date_str:
-            try:
-                record_date = date.fromisoformat(record_date_str) 
-                # Append the dictionary to the list for that date
-                records_by_date[record_date].append(formatted_rec) # <--- CHANGE HERE
-            except (ValueError, TypeError): # Handle invalid date formats or None
-                records_by_date["Invalid Date"].append(formatted_rec) # <--- CHANGE HERE
-        else:
-             records_by_date["Invalid Date"].append(formatted_rec) # Handle missing date info
-
-    sorted_dates = sorted([d for d in records_by_date.keys() if isinstance(d, date)], reverse=True)
-    # Handle "Invalid Date" key if present
-    if "Invalid Date" in records_by_date:
-        sorted_dates.append("Invalid Date") 
-    # -----------------------------
-    
-    # --- Logging (keep for now) ---
-    print(f"--- /admin ---")
-    if all_records:
-        print(f"Total records fetched: {len(all_records)}")
-        print(f"Data grouped into {len(sorted_dates)} dates.")
-    else:
-        print("No records found in database.")
-    # -----------------------------
-    
     return templates.TemplateResponse(
         "admin.html", 
         {
             "request": request, 
-            # Pass the grouped data and sorted dates to the template
-            "records_by_date": records_by_date, 
-            "sorted_dates": sorted_dates, 
-            "all_records": formatted_records
+            "records_by_month": records_by_month, 
+            "sorted_months": sorted_months,     
+            "records_by_reason": records_by_reason, 
+            "sorted_reasons": sorted_reasons,     
+            "all_records": formatted_records,
+            "datetime": datetime # <-- ADD THIS TO PASS DATETIME OBJECT
         }
     )
 # -------------------------------------------------------------
