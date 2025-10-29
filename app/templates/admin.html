@@ -1,15 +1,19 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Dashboard{% endblock %}
+{% block title %}Admin Dashboard - Calendar View{% endblock %}
 
 {% block content %}
-    <h1 class="mb-3">Check-ins Calendar</h1>
+    <h1 class="mb-3">Attendance Calendar</h1>
     <div class="logout mb-4"><a href="/admin/logout">Logout</a></div>
 
+    {# --- Main Row: Calendar and Side Panel Placeholder --- #}
     <div class="row">
         {# Calendar Area #}
         <div class="col-md-8">
             <div class="card mb-4">
+                <div class="card-header">
+                    <h2>Calendar View</h2>
+                </div>
                 <div class="card-body">
                     {# Div where FullCalendar will render #}
                     <div id='calendar'></div> 
@@ -17,159 +21,44 @@
             </div>
         </div>
 
-        {# Side Panel Area (Initially Hidden) #}
+        {# Side Panel Area - Placeholder and Offcanvas Definition #}
         <div class="col-md-4">
-            {# Using Bootstrap Offcanvas for the side panel #}
+            {# Placeholder shown initially #}
+            <div class="card mb-4" id="sidePanelPlaceholder">
+                <div class="card-header">
+                    <h5 class="mb-0">Daily Summary</h5>
+                </div>
+                <div class="card-body text-center text-muted">
+                    <p>Click a date on the calendar to view check-ins for that day.</p>
+                </div>
+            </div>
+
+             {# Offcanvas Definition (Hidden until triggered by calendar click) #}
             <div class="offcanvas offcanvas-end" tabindex="-1" id="attendanceOffcanvas" aria-labelledby="attendanceOffcanvasLabel">
-              <div class="offcanvas-header">
-                <h5 class="offcanvas-title" id="attendanceOffcanvasLabel">Check-ins for YYYY-MM-DD</h5>
+              <div class="offcanvas-header border-bottom">
+                <h5 class="offcanvas-title" id="attendanceOffcanvasLabel">Check-ins</h5>
                 <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
               </div>
               <div class="offcanvas-body">
-                {# Content will be populated by JavaScript #}
-                <p>Loading...</p>
-                <ul class="list-group" id="attendanceList">
-                  {# List items will be added here #}
+                <ul class="list-group list-group-flush" id="attendanceList">
+                  {# List items will be added here by JavaScript #}
+                  <li class="list-group-item">Loading...</li>
                 </ul>
               </div>
             </div>
-            {# Add a placeholder or instructions when no date is selected #}
-            <div class="card" id="sidePanelPlaceholder">
-                <div class="card-body text-center text-muted">
-                    <p>Click a date on the calendar to view check-ins.</p>
-                </div>
-            </div>
         </div>
-    </div>
+    </div>{# --- End Main Row --- #}
 
-    {# --- CARD 1: Monthly Accordion --- #}
-    <div class="card mb-4">
+
+    {# --- All Records Table Card --- #}
+    <div class="card mt-4">
         <div class="card-header">
-            <h2>Check-ins Monthly Breakdown</h2>
-        </div>
-        <div class="card-body">
-            <div class="accordion" id="monthlyAccordion">
-                {% if sorted_months %}
-                    {% for month_key in sorted_months %}
-                        {% set records_for_month = records_by_month[month_key] %}
-                        {% set accordion_id = "collapse-month-" + month_key.replace('-', '') %} 
-                        {% set header_id = "heading-month-" + month_key.replace('-', '') %} 
-                        {# Format month key for display (e.g., "October 2025") #}
-                        {% set display_month = month_key %}
-                        {% if month_key != "Unknown Month" %}
-                            {% set temp_date = datetime.strptime(month_key + '-01', '%Y-%m-%d') %}
-                            {% set display_month = temp_date.strftime('%B %Y') %}
-                        {% endif %}
-                        
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="{{ header_id }}">
-                                <button class="accordion-button {% if loop.index > 1 %}collapsed{% endif %}" 
-                                        type="button" data-bs-toggle="collapse" data-bs-target="#{{ accordion_id }}" 
-                                        aria-expanded="{{ 'true' if loop.first else 'false' }}" aria-controls="{{ accordion_id }}">
-                                    {{ display_month }} - ({{ records_for_month | length }} Check-ins)
-                                </button>
-                            </h2>
-                            <div id="{{ accordion_id }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" 
-                                 aria-labelledby="{{ header_id }}" data-bs-parent="#monthlyAccordion">
-                                <div class="accordion-body">
-                                    <ul class="list-group">
-                                        {# Sort records within the month by date/time? Optional. #}
-                                        {% for rec in records_for_month | sort(attribute='timestamp_utc', reverse=true) %} 
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>
-                                                <strong>{{ rec.user_name or 'Unknown User' }}</strong> 
-                                                <small class="text-muted ms-2">({{ rec.site | title }})</small>
-                                                <small class="text-muted ms-2 fst-italic">[{{ rec.visit_reason or 'N/A' }}]</small>
-                                            </span>
-                                            <span class="badge bg-secondary rounded-pill">
-                                                {{ rec.timestamp_display }} {# Already formatted #}
-                                            </span>
-                                        </li>
-                                        {% endfor %}
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %} 
-                {% else %}
-                    <div class="alert alert-info" role="alert">No check-in records found.</div>
-                {% endif %} 
-            </div> 
-        </div>
-    </div> 
-    {# --- END CARD 1 --- #}
-
-    {# --- CARD 2: Reason Accordion --- #}
-    <div class="card mb-4">
-        <div class="card-header">
-            <h2>Check-ins Reason Breakdown</h2>
-        </div>
-        <div class="card-body">
-            <div class="accordion" id="reasonAccordion">
-                 {% if sorted_reasons %}
-                    {% for reason_key in sorted_reasons %}
-                        {% set records_for_reason = records_by_reason[reason_key] %}
-                        {% set accordion_id = "collapse-reason-" + loop.index|string %} 
-                        {% set header_id = "heading-reason-" + loop.index|string %} 
-                        
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="{{ header_id }}">
-                                <button class="accordion-button collapsed" {# Start all collapsed #}
-                                        type="button" data-bs-toggle="collapse" data-bs-target="#{{ accordion_id }}" 
-                                        aria-expanded="false" aria-controls="{{ accordion_id }}">
-                                    {{ reason_key }} - ({{ records_for_reason | length }} Check-ins)
-                                </button>
-                            </h2>
-                            <div id="{{ accordion_id }}" class="accordion-collapse collapse" 
-                                 aria-labelledby="{{ header_id }}" data-bs-parent="#reasonAccordion">
-                                <div class="accordion-body">
-                                    <ul class="list-group">
-                                        {% for rec in records_for_reason | sort(attribute='timestamp_utc', reverse=true) %} 
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>
-                                                <strong>{{ rec.user_name or 'Unknown User' }}</strong> 
-                                                <small class="text-muted ms-2">({{ rec.site | title }})</small>
-                                            </span>
-                                            <span class="badge bg-secondary rounded-pill">
-                                                {{ rec.timestamp_display }} {# Already formatted #}
-                                            </span>
-                                        </li>
-                                        {% endfor %}
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %} 
-                {% else %}
-                     <div class="alert alert-info" role="alert">No check-in records found.</div>
-                {% endif %} 
-            </div>
-        </div>
-    </div>
-    {# --- END CARD 2 --- #}
-
-
-    {# --- CARD 3: Chart (Commented Out) --- #}
-    {# 
-    <div class="card mb-4">
-        <div class="card-header">
-            <h2>Daily Check-ins (Last 7 Days)</h2>
-        </div>
-        <div class="card-body">
-            <canvas id="dailyCheckinsChart"></canvas>
-        </div>
-    </div> 
-    #}
-    {# --- END CARD 3 --- #}
-
-    {# --- All Records Table --- #}
-    <div class="card">
-        <div class="card-header">
-             <h2>All Checkins (Raw Data)</h2>
+             <h2>All Records (Raw Data)</h2>
         </div>
         <div class="card-body">
              <div class="table-responsive">
-                <table class="table table-striped table-hover table-bordered">
+                <table class="table table-striped table-hover table-bordered caption-top">
+                    <caption>List of all check-in records</caption>
                     <thead class="table-dark">
                         <tr>
                             <th>ID</th>
@@ -183,14 +72,14 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for rec in all_records %}
+                        {% for rec in all_records %} {# Assumes all_records is passed from main.py #}
                         <tr>
                             <td>{{ rec.id }}</td>
-                            <td>{{ rec.timestamp_display }}</td>
+                            <td>{{ rec.timestamp_display }}</td> {# Use pre-formatted time #}
                             <td>{{ rec.site | title }}</td>
                             <td>{{ rec.event_type }}</td>
                             <td>{{ rec.user_name or 'N/A' }}</td>
-                            <td>{{ rec.visit_reason or 'Not Found' }}</td>
+                            <td>{{ rec.visit_reason or 'N/A' }}</td>
                             <td>{{ rec.device_local_id or 'N/A' }}</td>
                             <td>
                                 {% if rec.geo_lat and rec.geo_lon %}
@@ -209,13 +98,15 @@
         </div>
     </div>
     {# --- END All Records Card --- #}
-{% endblock %}
 
-{% block scripts %} {# Add a separate block for scripts at the end of body #}
-    {# --- Part 2: JavaScript Logic --- #}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+{% endblock %} {# End Content Block #}
+
+{% block scripts %} {# Scripts Block (at end of body) #}
+    {# Include FullCalendar JS #}
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js'></script>
-    
+    {# Chart.js is not needed for this layout, can remove if desired #}
+    {# <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> #}
+
     <script>
       // Wait for the DOM to be ready
       document.addEventListener('DOMContentLoaded', function() {
@@ -225,69 +116,56 @@
         const attendanceList = document.getElementById('attendanceList');
         const sidePanelPlaceholder = document.getElementById('sidePanelPlaceholder');
         
-        // Ensure Bootstrap Offcanvas is initialized if needed (usually automatic with data attributes)
-        const attendanceOffcanvas = new bootstrap.Offcanvas(offcanvasElement);
+        // Ensure Bootstrap Offcanvas is initialized
+        // Note: Bootstrap JS should be loaded in base.html for this to work
+        const attendanceOffcanvas = new bootstrap.Offcanvas(offcanvasElement); 
 
         // --- Initialize FullCalendar ---
         const calendar = new FullCalendar.Calendar(calendarEl, {
-          initialView: 'dayGridMonth', // Start with month view
+          initialView: 'dayGridMonth', 
           headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay' // Optional views
+            right: 'dayGridMonth,timeGridWeek,listWeek' // Added list view
           },
-          editable: false, // Don't allow dragging events (we don't have events yet)
-          selectable: false, // Don't allow selecting date ranges
+          editable: false, 
+          selectable: false, 
           
           // --- Handle Date Click ---
           dateClick: async function(info) {
-            // info.dateStr will be 'YYYY-MM-DD'
             const dateStr = info.dateStr;
             console.log('Date clicked: ' + dateStr);
 
-            // Update Offcanvas title
             offcanvasTitle.textContent = `Check-ins for ${dateStr}`;
-            
-            // Show loading state in Offcanvas
             attendanceList.innerHTML = '<li class="list-group-item">Loading...</li>'; 
-            sidePanelPlaceholder.style.display = 'none'; // Hide placeholder
-            attendanceOffcanvas.show(); // Show the Offcanvas panel
+            // sidePanelPlaceholder.style.display = 'none'; // Keep placeholder visible behind offcanvas
+            attendanceOffcanvas.show(); 
 
             try {
-              // Fetch data for the clicked date
               const response = await fetch(`/api/metrics/attendance/${dateStr}`);
-              if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-              }
+              if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
               const records = await response.json();
 
-              // Clear previous list items
-              attendanceList.innerHTML = ''; 
+              attendanceList.innerHTML = ''; // Clear loading/previous
 
               if (records.length === 0) {
                 attendanceList.innerHTML = '<li class="list-group-item fst-italic text-muted">No check-ins found for this date.</li>';
               } else {
-                // Populate the list in the Offcanvas
                 records.forEach(rec => {
                   const listItem = document.createElement('li');
                   listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
-                  
-                  // Format time using browser's locale settings
                   let timeStr = 'N/A';
                   if (rec.timestamp_utc) {
-                      try {
-                          timeStr = new Date(rec.timestamp_utc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-                      } catch(e) { console.error("Error formatting date:", e); }
+                      try { timeStr = new Date(rec.timestamp_utc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }); } 
+                      catch(e) { console.error("Error formatting date:", e); }
                   }
-
                   listItem.innerHTML = `
                     <span>
                       <strong>${rec.user_name || 'Unknown User'}</strong>
                       <small class="text-muted ms-2">(${rec.site ? rec.site.charAt(0).toUpperCase() + rec.site.slice(1) : 'N/A'})</small>
                       <small class="text-muted ms-2 fst-italic">[${rec.visit_reason || 'N/A'}]</small>
                     </span>
-                    <span class="badge bg-secondary rounded-pill">${timeStr}</span>
-                  `;
+                    <span class="badge bg-secondary rounded-pill">${timeStr}</span>`;
                   attendanceList.appendChild(listItem);
                 });
               }
@@ -295,17 +173,12 @@
               console.error("Could not fetch attendance data:", error);
               attendanceList.innerHTML = '<li class="list-group-item text-danger">Error loading data.</li>';
             }
-          } 
-          // --- End Date Click Handler ---
+          } // --- End Date Click Handler ---
           
         }); // End Calendar initialization
 
-        // Render the calendar
         calendar.render();
-
-        // Optional: Hide Offcanvas when calendar view changes?
-        // calendar.on('viewDidMount', function() { attendanceOffcanvas.hide(); });
 
       }); // End DOMContentLoaded
     </script>
-{% endblock %}
+{% endblock %} {# End Scripts Block #}
