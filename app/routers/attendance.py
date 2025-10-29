@@ -4,7 +4,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse # Make sure RedirectResponse is imported
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Dict
 from datetime import datetime, timezone, date # Add date
 from zoneinfo import ZoneInfo # Add ZoneInfo
@@ -30,7 +30,7 @@ class FinalizePayload(BaseModel):
     geo: Optional[GeoPayload] = None
     nameText: Optional[str] = None
     signatureDataUrl: Optional[str] = None
-    visit_reason: Optional[str] = None
+    visit_reason: Optional[str] = Field(None, alias='visitReason')
 
 # --- Routes ---
 
