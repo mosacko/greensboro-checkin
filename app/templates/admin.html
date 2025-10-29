@@ -104,7 +104,7 @@
                             <td>{{ rec.event_type }}</td>
                             <td>{{ rec.user_name or 'N/A' }}</td>
                             <td>{{ rec.visit_reason or 'N/A' }}</td>
-                            <td>{{ rec.device_local_id or 'N/A' }}</td>
+                            <td>{{ rec.device_local_id or 'Not found' }}</td>
                             <td>
                                 {% if rec.geo_lat and rec.geo_lon %}
                                     {{ "%.4f"|format(rec.geo_lat) }}, {{ "%.4f"|format(rec.geo_lon) }}
