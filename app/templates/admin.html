@@ -144,100 +144,104 @@
     </div> 
     {# --- END CARD 1 --- #}
 
-    {# --- CARD 2: Reason Accordion --- #}
-    <div class="col-md-4 mb-4">
-        <div class="card">
-            <div class="card-header"><h2>Total Check-ins by Reason</h2></div> {# Title is now white #}
-            <div class="card-body">
-                <div class="accordion" id="reasonAccordion">
-                    {% if sorted_reasons %}
-                        {% for reason_key in sorted_reasons %}
-                            {% set records_for_reason = records_by_reason[reason_key] %}
-                            {% set accordion_id = "collapse-reason-" + loop.index|string %} 
-                            {% set header_id = "heading-reason-" + loop.index|string %} 
-                            
-                            <div class="accordion-item">
-                                <h2 class="accordion-header" id="{{ header_id }}">
-                                    <button class="accordion-button collapsed" {# Start all collapsed #}
-                                            type="button" data-bs-toggle="collapse" data-bs-target="#{{ accordion_id }}" 
-                                            aria-expanded="false" aria-controls="{{ accordion_id }}">
-                                        {{ reason_key }} - ({{ records_for_reason | length }} Check-ins)
-                                    </button>
-                                </h2>
-                                <div id="{{ accordion_id }}" class="accordion-collapse collapse" 
-                                    aria-labelledby="{{ header_id }}" data-bs-parent="#reasonAccordion">
-                                    <div class="accordion-body">
-                                        <ul class="list-group">
-                                            {% for rec in records_for_reason | sort(attribute='timestamp_utc', reverse=true) %} 
-                                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                <span>
-                                                    <strong>{{ rec.user_name or 'Unknown User' }}</strong> 
-                                                    <small class="text-muted ms-2">({{ rec.site | title }})</small>
-                                                </span>
-                                                <span class="badge bg-secondary rounded-pill">
-                                                    {{ rec.timestamp_display }} {# Already formatted #}
-                                                </span>
-                                            </li>
-                                            {% endfor %}
-                                        </ul>
-                                    </div>
-                                </div>
+    {# --- CARD 2: Reason and Business Accordion --- #}
+    <div class="row">
+        <div class="col-12"> {# Use full width for the combined card #}
+            <div class="card mb-4">
+                 <div class="card-header">
+                     <h2>Monthly Breakdowns</h2> {# Combined Header #}
+                 </div>
+                <div class="card-body">
+                    <div class="row"> {# Inner row for side-by-side layout #}
+                        {# Reason Accordion Column #}
+                        <div class="col-md-6 mb-3 mb-md-0"> {# Add bottom margin for small screens #}
+                            <h5 class="mb-3">By Reason</h5>
+                            <div class="accordion" id="reasonAccordion">
+                                {% if sorted_reasons %}
+                                    {% for reason_key in sorted_reasons %}
+                                        {% set records_for_reason = records_by_reason[reason_key] %}
+                                        {% set accordion_id = "collapse-reason-" + loop.index|string %} 
+                                        {% set header_id = "heading-reason-" + loop.index|string %} 
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header" id="{{ header_id }}">
+                                                <button class="accordion-button collapsed" {# Start all collapsed #}
+                                                        type="button" data-bs-toggle="collapse" data-bs-target="#{{ accordion_id }}" 
+                                                        aria-expanded="false" aria-controls="{{ accordion_id }}">
+                                                    {{ reason_key }} - ({{ records_for_reason | length }} Check-ins)
+                                                </button>
+                                            </h2>
+                                            <div id="{{ accordion_id }}" class="accordion-collapse collapse" 
+                                                aria-labelledby="{{ header_id }}" data-bs-parent="#reasonAccordion">
+                                                <div class="accordion-body">
+                                                    <ul class="list-group">
+                                                        {% for rec in records_for_reason | sort(attribute='timestamp_utc', reverse=true) %} 
+                                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                            <span>
+                                                                <strong>{{ rec.user_name or 'Unknown User' }}</strong> 
+                                                                <small class="text-muted ms-2">({{ rec.site | title }})</small>
+                                                            </span>
+                                                            <span class="badge bg-secondary rounded-pill">
+                                                                {{ rec.timestamp_display }} {# Already formatted #}
+                                                            </span>
+                                                        </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %} 
+                                {% else %}
+                                    <div class="alert alert-info" role="alert">No check-in records found.</div>
+                                {% endif %} 
                             </div>
-                        {% endfor %} 
-                    {% else %}
-                        <div class="alert alert-info" role="alert">No check-in records found.</div>
-                    {% endif %} 
+                        </div>
+                        
+                        {# Business Line Accordion Column #}
+                        <div class="col-md-6">
+                            <h5 class="mb-3">By Business Line</h5>
+                            <div class="accordion" id="businessLineAccordion">
+                                {% if sorted_business_lines %}
+                                    {% for bl_key in sorted_business_lines %}
+                                        {% set records_for_bl = records_by_business_line[bl_key] %}
+                                        {% set accordion_id = "collapse-bl-" + loop.index|string %}
+                                        {% set header_id = "heading-bl-" + loop.index|string %}
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header" id="{{ header_id }}">
+                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ accordion_id }}" aria-expanded="false" aria-controls="{{ accordion_id }}">
+                                                    {{ bl_key }} - ({{ records_for_bl | length }} Check-ins)
+                                                </button>
+                                            </h2>
+                                            <div id="{{ accordion_id }}" class="accordion-collapse collapse" aria-labelledby="{{ header_id }}" data-bs-parent="#businessLineAccordion">
+                                                <div class="accordion-body">
+                                                    <ul class="list-group">
+                                                        {% for rec in records_for_bl | sort(attribute='timestamp_utc', reverse=true) %}
+                                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                            <span>
+                                                                <strong>{{ rec.user_name or 'Unknown User' }}</strong>
+                                                                <small class="text-muted ms-2">({{ rec.site | title }})</small>
+                                                                <small class="text-muted ms-2 fst-italic">[{{ rec.visit_reason or 'N/A' }}]</small> {# Keep reason here? #}
+                                                            </span>
+                                                            <span class="badge bg-secondary rounded-pill">
+                                                                {{ rec.timestamp_display }}
+                                                            </span>
+                                                        </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="alert alert-info" role="alert">No check-in records found.</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
     {# --- END CARD 2 --- #}
-
-    {# --- ADD BUSINESS LINE ACCORDION --- #}
-    <div class="col-md-4 mb-4">
-        <div class="card">
-            <div class="card-header"><h2>Total Check-ins by Business Line</h2></div> {# Title is now white #}
-            <div class="card-body">
-                <div class="accordion" id="businessLineAccordion">
-                    {% if sorted_business_lines %}
-                        {% for bl_key in sorted_business_lines %}
-                            {% set records_for_bl = records_by_business_line[bl_key] %}
-                            {% set accordion_id = "collapse-bl-" + loop.index|string %}
-                            {% set header_id = "heading-bl-" + loop.index|string %}
-                            <div class="accordion-item">
-                                <h2 class="accordion-header" id="{{ header_id }}">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ accordion_id }}" aria-expanded="false" aria-controls="{{ accordion_id }}">
-                                        {{ bl_key }} - ({{ records_for_bl | length }} Check-ins)
-                                    </button>
-                                </h2>
-                                <div id="{{ accordion_id }}" class="accordion-collapse collapse" aria-labelledby="{{ header_id }}" data-bs-parent="#businessLineAccordion">
-                                    <div class="accordion-body">
-                                        <ul class="list-group">
-                                            {% for rec in records_for_bl | sort(attribute='timestamp_utc', reverse=true) %}
-                                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                <span>
-                                                    <strong>{{ rec.user_name or 'Unknown User' }}</strong>
-                                                    <small class="text-muted ms-2">({{ rec.site | title }})</small>
-                                                    <small class="text-muted ms-2 fst-italic">[{{ rec.visit_reason or 'N/A' }}]</small> {# Keep reason here? #}
-                                                </span>
-                                                <span class="badge bg-secondary rounded-pill">
-                                                    {{ rec.timestamp_display }}
-                                                </span>
-                                            </li>
-                                            {% endfor %}
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    {% else %}
-                    <div class="alert alert-info" role="alert">No check-in records found.</div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-    {# --- END BUSINESS LINE ACCORDION --- #}
 
     {# --- All Records Table --- #}
     <div class="row">
