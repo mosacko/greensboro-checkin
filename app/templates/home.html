@@ -9,7 +9,7 @@
         <p class="lead mb-4">Select a site to begin your check-in process.</p>
         <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
             {% for code, name in sites.items() %}
-                <a href="/scan?site={{ code }}" class="btn btn-primary btn-lg px-4 gap-3" background="f8423a" border-color="f8423a">Scan ({{ name }})</a>
+                <a href="/scan?site={{ code }}" class="btn btn-primary btn-lg px-4 gap-3" background="#f8423a" border-color="#f8423a">Scan ({{ name }})</a>
             {% endfor %}
         </div>
          <hr class="my-4">
