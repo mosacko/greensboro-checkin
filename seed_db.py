@@ -13,9 +13,9 @@ from app.database import Base, engine
 from app.models import Attendance, Employee 
 
 # --- Configuration ---
-NUM_EMPLOYEES = 20
+NUM_EMPLOYEES = 10
 NUM_DAYS = 90
-CHECK_IN_RATE = 0.75 # 75%
+CHECK_IN_RATE = 0.5 # 50%
 SITE_CODE = "greenville" 
 # --- ADD VISIT REASONS ---
 VISIT_REASONS = ["Work", "Visit", "Client Meeting", "Internal Meeting", "Other"]
