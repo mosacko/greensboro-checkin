@@ -239,10 +239,13 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
         if rec.timestamp_utc:
             timestamp_est = rec.timestamp_utc.astimezone(est_zone)
             est_str = timestamp_est.strftime('%Y-%m-%d %H:%M:%S %Z') 
+            # Format specifically for HTML datetime-local input (YYYY-MM-DDTHH:MM)
+            iso_local_str = timestamp_est.strftime('%Y-%m-%dT%H:%M')
             month_key = timestamp_est.strftime('%Y-%m') # Key for month grouping (e.g., "2025-10")
             record_date = timestamp_est.date() # Get date object for sorting later if needed
         else:
             est_str = 'N/A'
+            iso_local_str = '' # Empty string for input if None
             month_key = "Unknown Month"
             record_date = None # Cannot determine date
 
@@ -250,7 +253,8 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
         formatted_rec = {
             "id": rec.id,
             "timestamp_utc": rec.timestamp_utc, 
-            "timestamp_display": est_str,      
+            "timestamp_display": est_str,     
+            "timestamp_iso_local": iso_local_str, 
             "site": rec.site,
             "event_type": rec.event_type,
             "user_name": rec.user_name,
@@ -355,6 +359,7 @@ def admin_edit_record(
     user_name: str = Form(...),
     visit_reason: str = Form(...),
     site: str = Form(...),
+    custom_date: str = Form(...),
     db: Session = Depends(get_db)
 ):
     if request.cookies.get("admin_auth") != "super_secret_token":
@@ -365,6 +370,27 @@ def admin_edit_record(
         rec.user_name = user_name
         rec.visit_reason = visit_reason
         rec.site = site
+
+        # --- UPDATE TIMESTAMP ---
+        try:
+            # Parse the datetime-local input (YYYY-MM-DDTHH:MM)
+            dt_obj = datetime.strptime(custom_date, "%Y-%m-%dT%H:%M")
+            
+            # Assume Admin is entering EST time, convert to UTC for storage
+            try:
+                est_zone = ZoneInfo("America/New_York")
+            except:
+                est_zone = timezone.utc
+            
+            dt_est = dt_obj.replace(tzinfo=est_zone)
+            dt_utc = dt_est.astimezone(timezone.utc)
+            
+            rec.timestamp_utc = dt_utc
+            rec.local_date = dt_est.strftime("%Y-%m-%d") # Update local_date too for grouping
+        except ValueError:
+            pass # Keep old date if format is wrong
+        # ------------------------
+
         db.commit()
     
     return RedirectResponse(url="/admin", status_code=303)

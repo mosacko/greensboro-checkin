@@ -313,7 +313,8 @@
                                         data-id="{{ rec.id }}"
                                         data-name="{{ rec.user_name or '' }}"
                                         data-reason="{{ rec.visit_reason or '' }}"
-                                        data-site="{{ rec.site }}">
+                                        data-site="{{ rec.site }}"
+                                        data-timestamp="{{ rec.timestamp_iso_local }}">
                                     Edit
                                 </button>
                                 
@@ -388,6 +389,11 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" name="record_id" id="edit_record_id">
+
+                <div class="mb-3">
+                    <label class="form-label">Date & Time (EST)</label>
+                    <input type="datetime-local" name="custom_date" id="edit_custom_date" class="form-control" required>
+                </div>
                 
                 <div class="mb-3">
                     <label class="form-label">Name</label>
@@ -397,7 +403,6 @@
                 <div class="mb-3">
                     <label class="form-label">Site</label>
                     <select name="site" id="edit_site" class="form-select">
-                        <option value="greensboro">Greensboro</option>
                         <option value="greenville">Greenville</option> <option value="remote">Remote</option>
                     </select>
                 </div>
@@ -452,11 +457,13 @@
         const name = button.getAttribute('data-name');
         const reason = button.getAttribute('data-reason');
         const site = button.getAttribute('data-site');
+        const timestamp = button.getAttribute('data-timestamp');
 
         // Update the modal's content.
         document.getElementById('edit_record_id').value = id;
         document.getElementById('edit_user_name').value = name;
         document.getElementById('edit_site').value = site;
+        document.getElementById('edit_custom_date').value = timestamp;
         
         // Select the correct reason if it matches one of our options, otherwise 'Other'
         const reasonSelect = document.getElementById('edit_visit_reason');
