@@ -307,3 +307,80 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
         }
     )
 # -------------------------------------------------------------
+
+# --- Admin Actions (Add, Edit, Delete) ---
+
+@app.post("/admin/add")
+def admin_add_record(
+    request: Request,
+    user_name: str = Form(...),
+    visit_reason: str = Form(...),
+    site: str = Form(...),
+    custom_date: str = Form(...), # Expecting YYYY-MM-DDTHH:MM
+    db: Session = Depends(get_db)
+):
+    if request.cookies.get("admin_auth") != "super_secret_token":
+        return RedirectResponse(url="/admin/login", status_code=303)
+
+    try:
+        # Parse the datetime-local input
+        dt_obj = datetime.strptime(custom_date, "%Y-%m-%dT%H:%M")
+        # Convert local time input to UTC for storage
+        # Assuming admin is entering EST time, we convert to UTC
+        est_zone = ZoneInfo("America/New_York")
+        dt_est = dt_obj.replace(tzinfo=est_zone)
+        dt_utc = dt_est.astimezone(timezone.utc)
+        
+        new_rec = Attendance(
+            user_name=user_name,
+            visit_reason=visit_reason,
+            site=site,
+            timestamp_utc=dt_utc,
+            local_date=dt_est.strftime("%Y-%m-%d"),
+            event_type="check_in",
+            source="admin_manual",
+            is_valid=True
+        )
+        db.add(new_rec)
+        db.commit()
+    except Exception as e:
+        print(f"Error adding record: {e}")
+    
+    return RedirectResponse(url="/admin", status_code=303)
+
+@app.post("/admin/edit")
+def admin_edit_record(
+    request: Request,
+    record_id: int = Form(...),
+    user_name: str = Form(...),
+    visit_reason: str = Form(...),
+    site: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    if request.cookies.get("admin_auth") != "super_secret_token":
+        return RedirectResponse(url="/admin/login", status_code=303)
+
+    rec = db.get(Attendance, record_id)
+    if rec:
+        rec.user_name = user_name
+        rec.visit_reason = visit_reason
+        rec.site = site
+        db.commit()
+    
+    return RedirectResponse(url="/admin", status_code=303)
+
+@app.post("/admin/delete")
+def admin_delete_record(
+    request: Request,
+    record_id: int = Form(...),
+    db: Session = Depends(get_db)
+):
+    if request.cookies.get("admin_auth") != "super_secret_token":
+        return RedirectResponse(url="/admin/login", status_code=303)
+
+    rec = db.get(Attendance, record_id)
+    if rec:
+        db.delete(rec)
+        db.commit()
+    
+    return RedirectResponse(url="/admin", status_code=303)
