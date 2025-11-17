@@ -11,13 +11,28 @@
             </div>
             <div class="card-body text-center">
                 <h5 class="card-title">Check-in Recorded</h5>
-                <p class="card-text">Thank you for checking in. You are all set.</p>
+                <p class="card-text">Your attendance has been successfully logged.</p>
                 <hr>
+                <p class="mb-4 fw-bold">You may now close this window/tab.</p>
+                
                 <div class="d-grid gap-2">
-                    <a href="/" class="btn btn-outline-success">Return to Home</a>
+                    <button onclick="closeWindow()" class="btn btn-outline-secondary">Close Window</button>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    function closeWindow() {
+        // Try standard window close
+        window.close();
+        
+        // Fallback/User feedback if browser blocks it
+        const message = document.createElement('p');
+        message.textContent = "If the window doesn't close automatically, please close the tab manually.";
+        message.className = "text-muted mt-2 small";
+        document.querySelector('.card-body').appendChild(message);
+    }
+</script>
 {% endblock %}

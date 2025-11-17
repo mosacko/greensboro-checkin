@@ -99,12 +99,13 @@ def visitor_submit(
     first_name: str = Form(...),
     last_name: str = Form(...),
     visit_reason: str = Form(...),
+    business_line: str = Form(...), # <-- ADD THIS PARAMETER
     db: Session = Depends(get_db)
 ):
     # 1. Construct full name
     full_name = f"{first_name} {last_name}"
 
-    # 2. Calculate timestamps (same logic as before)
+    # 2. Calculate timestamps
     now_utc = datetime.now(timezone.utc)
     try:
         est_zone = ZoneInfo("America/New_York")
@@ -119,12 +120,12 @@ def visitor_submit(
         event_type="check_in",
         is_valid=True,
         source="visitor_manual",
-        user_type="visitor", # Set type
+        user_type="visitor",
         timestamp_utc=now_utc,
         local_date=local_date_str,
         user_name=full_name,
         visit_reason=visit_reason,
-        # user_email can be None or we can ask for it in the form
+        business_line=business_line, # <-- SAVE IT HERE
     )
     
     db.add(rec)

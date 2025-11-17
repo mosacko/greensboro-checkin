@@ -291,7 +291,10 @@
                             <th>Event Type</th>
                             <th>User Name</th>
                             <th>Reason</th>
-                            <th>Actions</th> {# New Column #}
+                            <th>Business Line</th> {# <-- ADD HEADER #}
+                            <th>Device ID</th>
+                            <th>Geo (Lat, Lon)</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -303,28 +306,18 @@
                             <td>{{ rec.event_type }}</td>
                             <td>{{ rec.user_name or 'N/A' }}</td>
                             <td>{{ rec.visit_reason or 'N/A' }}</td>
+                            <td>{{ rec.business_line or 'N/A' }}</td> {# <-- ADD DATA CELL #}
+                            <td>{{ rec.device_local_id or 'N/A' }}</td>
                             <td>
-                                {# EDIT BUTTON #}
-                                <button class="btn btn-sm btn-primary me-1" 
-                                        data-bs-toggle="modal" 
-                                        data-bs-target="#editRecordModal"
-                                        data-id="{{ rec.id }}"
-                                        data-name="{{ rec.user_name or '' }}"
-                                        data-reason="{{ rec.visit_reason or '' }}"
-                                        data-site="{{ rec.site }}">
-                                    Edit
-                                </button>
-                                
-                                {# DELETE FORM #}
-                                <form action="/admin/delete" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this record?');">
-                                    <input type="hidden" name="record_id" value="{{ rec.id }}">
-                                    <button type="submit" class="btn btn-sm btn-danger">Del</button>
-                                </form>
+                                {% if rec.geo_lat and rec.geo_lon %}
+                                    {{ "%.4f"|format(rec.geo_lat) }}, {{ "%.4f"|format(rec.geo_lon) }}
+                                {% else %} N/A {% endif %}
                             </td>
+                            <td>... (actions) ...</td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="7" class="text-center fst-italic">No records found.</td>
+                            <td colspan="10" class="text-center fst-italic">No records found.</td> {# Update colspan to 10 #}
                         </tr>
                         {% endfor %}
                     </tbody>

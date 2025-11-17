@@ -34,6 +34,22 @@
                       </select>
                     </div>
 
+                    {# --- ADD BUSINESS LINE --- #}
+                    <div class="mb-3">
+                      <label for="business_line" class="form-label">Business Line (Visitor):</label>
+                      <select id="business_line" name="business_line" required class="form-select">
+                        <option value="" disabled selected>-- Select Business Line --</option>
+                        <option value="Transportation">Transportation</option>
+                        <option value="Buildings">Buildings</option>
+                        <option value="Environment">Environment</option>
+                        <option value="Water">Water</option>
+                        <option value="Advisory">Advisory</option>
+                        <option value="Corporate/Admin">Corporate/Admin</option>
+                        <option value="N/A">N/A - Not Applicable</option>
+                      </select>
+                    </div>
+                    {# ------------------------- #}
+
                     <div class="d-grid">
                         <button type="submit" class="btn btn-success btn-lg">Check In</button>
                     </div>
