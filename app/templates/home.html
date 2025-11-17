@@ -18,16 +18,20 @@
 <div class="px-4 py-5 my-5 text-center">
     <h1 class="display-5 fw-bold">WSP Check-in Tracker</h1>
     <div class="col-lg-6 mx-auto">
-        <p class="lead mb-4">Select a site to begin your check-in process.</p>
+        <p class="lead mb-4">Select your check-in type.</p>
         <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-            {% for code, name in sites.items() %}
-                <a href="/scan?site={{ code }}" class="btn btn-primary btn-lg px-4 gap-3" background="#f8423a" border-color="#f8423a">Scan ({{ name }})</a>
-            {% endfor %}
+            {# --- Button 1: Employee (SSO) --- #}
+            <a href="/scan?site={{ sites.get('greensboro', 'greensboro') }}" class="btn btn-primary btn-lg px-4 gap-3">
+                Employee Check-in
+            </a>
+            
+            {# --- Button 2: Visitor (Manual) --- #}
+            <a href="/visitor?site={{ sites.get('greensboro', 'greensboro') }}" class="btn btn-outline-secondary btn-lg px-4">
+                Visitor Check-in
+            </a>
         </div>
-        <hr class="my-4">
-        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-            <a href="/admin" class="btn btn-primary btn-lg px-4 gap-3" background="#f8423a" border-color="#f8423a">Admin Area</a>
-        </div>
+         <hr class="my-4">
+         <p><a href="/admin" class="btn btn-sm btn-danger">Admin Area</a></p>
     </div>
 </div>
 {% endblock %}

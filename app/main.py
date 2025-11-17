@@ -165,6 +165,10 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     print(f"Login successful, redirecting back to: {redirect_url}") # Keep logging
     return RedirectResponse(url=redirect_url)
 
+@app.get("/checkin-success", response_class=HTMLResponse)
+def checkin_success(request: Request):
+    return templates.TemplateResponse("checkin_success.html", {"request": request})
+
 @app.get("/logout")
 def logout(request: Request):
     """Clears the user's session cookie."""

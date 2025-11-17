@@ -31,6 +31,7 @@ class Attendance(Base):
     
     # This is now a simple String, as you requested
     event_type = Column(String(20), nullable=False, index=True) 
+    user_type = Column(String(20), default="employee") # 'employee' or 'visitor'
 
     user_name = Column(String(200), nullable=True) # To store the name from SSO
     user_email = Column(String(320), nullable=True, index=True) # Add email, index for faster lookups

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Visitor Check-in{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header text-center">
+                <h2>Visitor Check-in</h2>
+            </div>
+            <div class="card-body">
+                <form action="/visitor/submit" method="post">
+                    <input type="hidden" name="site" value="{{ site }}">
+
+                    <div class="mb-3">
+                        <label for="first_name" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="first_name" name="first_name" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="last_name" class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="last_name" name="last_name" required>
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="visit_reason" class="form-label">Reason for Visit:</label>
+                      <select id="visit_reason" name="visit_reason" required class="form-select">
+                        <option value="" disabled selected>-- Select a Reason --</option>
+                        <option value="Visit">Visit</option>
+                        <option value="Client Meeting">Client Meeting</option>
+                        <option value="Internal Meeting">Internal Meeting</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-lg">Check In</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,5 +1,5 @@
 from fastapi.templating import Jinja2Templates
-from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi import APIRouter, Request, Depends, HTTPException, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse # Make sure RedirectResponse is imported
@@ -87,6 +87,51 @@ def scan(request: Request, db: Session = Depends(get_db), site: Optional[str] = 
         "scan.html",
         {"request": request, "token": token, "site": site_code}
     )
+
+@router.get("/visitor", response_class=HTMLResponse)
+def visitor_checkin_page(request: Request, site: str = "greensboro"):
+    return templates.TemplateResponse("visitor_checkin.html", {"request": request, "site": site})
+
+@router.post("/visitor/submit")
+def visitor_submit(
+    request: Request,
+    site: str = Form(...),
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    visit_reason: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    # 1. Construct full name
+    full_name = f"{first_name} {last_name}"
+
+    # 2. Calculate timestamps (same logic as before)
+    now_utc = datetime.now(timezone.utc)
+    try:
+        est_zone = ZoneInfo("America/New_York")
+        now_est = now_utc.astimezone(est_zone)
+        local_date_str = now_est.strftime("%Y-%m-%d")
+    except Exception:
+        local_date_str = now_utc.strftime("%Y-%m-%d")
+
+    # 3. Create Attendance Record
+    rec = Attendance(
+        site=site,
+        event_type="check_in",
+        is_valid=True,
+        source="visitor_manual",
+        user_type="visitor", # Set type
+        timestamp_utc=now_utc,
+        local_date=local_date_str,
+        user_name=full_name,
+        visit_reason=visit_reason,
+        # user_email can be None or we can ask for it in the form
+    )
+    
+    db.add(rec)
+    db.commit()
+
+    # 4. Redirect to success page
+    return RedirectResponse(url="/checkin-success", status_code=303)
 
 @router.post("/finalize")
 async def finalize(payload: FinalizePayload, request: Request, db: Session = Depends(get_db)): # Add request parameter
