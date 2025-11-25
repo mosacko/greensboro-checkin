@@ -20,7 +20,7 @@ from .settings import settings
 from .routers import attendance as attendance_router
 from .routers import metrics as metrics_router
 from .database import get_db
-from .models import Attendance
+from .models import Attendance, Employee
 
 import os
 
