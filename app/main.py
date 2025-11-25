@@ -10,11 +10,7 @@ from zoneinfo import ZoneInfo
 from collections import defaultdict # Import defaultdict
 from starlette.middleware.sessions import SessionMiddleware # Add SessionMiddleware
 
-# --- ADD THESE AUTH IMPORTS ---
-#from authlib.integrations.starlette_client import OAuth
-#from authlib.integrations.base_client.errors import OAuthError
-#from .models import Employee # Import Employee model
-# -----------------------------
+from .security import get_password_hash, verify_password
 
 from .settings import settings
 from .routers import attendance as attendance_router
