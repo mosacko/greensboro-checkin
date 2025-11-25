@@ -313,6 +313,7 @@
                                         data-id="{{ rec.id }}"
                                         data-name="{{ rec.user_name or '' }}"
                                         data-reason="{{ rec.visit_reason or '' }}"
+                                        data-business-line="{{ rec.business_line or '' }}"
                                         data-site="{{ rec.site }}"
                                         data-timestamp="{{ rec.timestamp_iso_local }}">
                                     Edit
@@ -415,6 +416,20 @@
                         <option value="Client Meeting">Client Meeting</option>
                         <option value="Internal Meeting">Internal Meeting</option>
                         <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Business Line</label>
+                    <select name="business_line" id="edit_business_line" class="form-select">
+                        <option value="" disabled>-- Select --</option>
+                        <option value="Transportation">Transportation</option>
+                        <option value="Buildings">Buildings</option>
+                        <option value="Environment">Environment</option>
+                        <option value="Water">Water</option>
+                        <option value="Advisory">Advisory</option>
+                        <option value="Corporate/Admin">Corporate/Admin</option>
+                        <option value="N/A">N/A - Not Applicable</option>
                     </select>
                 </div>
             </div>
