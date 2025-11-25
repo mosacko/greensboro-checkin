@@ -11,9 +11,9 @@ from collections import defaultdict # Import defaultdict
 from starlette.middleware.sessions import SessionMiddleware # Add SessionMiddleware
 
 # --- ADD THESE AUTH IMPORTS ---
-from authlib.integrations.starlette_client import OAuth
-from authlib.integrations.base_client.errors import OAuthError
-from .models import Employee # Import Employee model
+#from authlib.integrations.starlette_client import OAuth
+#from authlib.integrations.base_client.errors import OAuthError
+#from .models import Employee # Import Employee model
 # -----------------------------
 
 from .settings import settings
@@ -43,14 +43,14 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 # --- ADD OAUTH SETUP ---
-oauth = OAuth()
-oauth.register(
-    name="azure",
-    server_metadata_url=f"https://login.microsoftonline.com/{settings.oidc_tenant}/v2.0/.well-known/openid-configuration",
-    client_id=settings.oidc_client_id,
-    client_secret=settings.oidc_client_secret,
-    client_kwargs={"scope": "openid profile email offline_access"},
-)
+#oauth = OAuth()
+#oauth.register(
+#    name="azure",
+#    server_metadata_url=f"https://login.microsoftonline.com/{settings.oidc_tenant}/v2.0/.well-known/openid-configuration",
+#    client_id=settings.oidc_client_id,
+#    client_secret=settings.oidc_client_secret,
+#    client_kwargs={"scope": "openid profile email offline_access"},
+#)
 # ------------------------
 
 @app.get("/", response_class=HTMLResponse)
@@ -61,126 +61,86 @@ def home(request: Request):
 app.include_router(attendance_router.router, prefix="", tags=["attendance"])
 app.include_router(metrics_router.router, prefix="", tags=["metrics"]) # ADD THIS LINE
 
-# --- ADD SSO ROUTES ---
+@app.get("/register", response_class=HTMLResponse)
+def register_page(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request})
 
-@app.get("/login")
-async def login(request: Request):
-    """Redirects the user to Microsoft's login page."""
+@app.post("/register")
+def register_user(
+    request: Request,
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    # 1. Check if user exists
+    existing_user = db.query(Employee).filter(Employee.email == email).first()
+    if existing_user:
+        return templates.TemplateResponse("register.html", {
+            "request": request, 
+            "error": "Email already registered. Please login."
+        })
+
+    # 2. Create new user
+    full_name = f"{first_name} {last_name}"
+    hashed_pwd = get_password_hash(password)
     
-    # --- STORE INTENDED SITE ---
-    # Check if the user came from a /scan URL with a site parameter
-    referer = request.headers.get("referer")
-    intended_site = settings.default_site # Default if not found
-    if referer:
-        try:
-            from urllib.parse import urlparse, parse_qs
-            parsed_url = urlparse(referer)
-            if parsed_url.path == "/scan":
-                query_params = parse_qs(parsed_url.query)
-                site_list = query_params.get("site")
-                if site_list and site_list[0] in settings.sites:
-                    intended_site = site_list[0]
-        except Exception:
-            pass # Keep default site if parsing fails
-            
-    request.session["intended_site"] = intended_site
-    print(f"Stored intended site in session: {intended_site}") # Add logging
-    # --------------------------
+    new_employee = Employee(
+        email=email,
+        display_name=full_name,
+        password_hash=hashed_pwd,
+        status="active"
+    )
+    db.add(new_employee)
+    db.commit()
+
+    # 3. Auto-login (set session)
+    request.session["user"] = {"email": email, "name": full_name}
     
-    redirect_uri = settings.oidc_redirect_uri or str(request.url_for("auth_callback"))
-    return await oauth.azure.authorize_redirect(request, redirect_uri)
+    # 4. Redirect to Scan
+    return RedirectResponse(url="/scan", status_code=303)
 
-@app.get("/auth/callback")
-async def auth_callback(request: Request, db: Session = Depends(get_db)):
-    """
-    Handles the response back from Microsoft after login.
-    Saves user info to session, upserts employee record,
-    and redirects user back to the /scan page.
-    """
-    # 1. Check if SSO is configured
-    if not oauth.azure.client_id:
-        return PlainTextResponse("SSO not configured (missing client_id)", status_code=400)
+# --- NEW LOGIN ROUTES ---
 
-    # 2. Get the authorization token from Microsoft
-    try:
-        token = await oauth.azure.authorize_access_token(request)
-    except OAuthError as e:
-        print(f"OAuthError during token fetch: {e.error} - {e.description}") # Add logging
-        return PlainTextResponse(f"SSO error: {e.error} - {e.description}", status_code=400)
-    except Exception as e:
-        print(f"Exception during token fetch: {repr(e)}") # Add logging
-        return PlainTextResponse(f"Auth callback exception: {repr(e)}", status_code=400)
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
 
-    # 3. Extract user information from the token
-    user_info = token.get("userinfo") or {}
-    email = user_info.get("email") or user_info.get("preferred_username") or user_info.get("upn") or ""
-    name = user_info.get("name") or (email.split("@")[0] if email else "Unknown")
+@app.post("/login")
+def login_submit(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    # 1. Find user
+    user = db.query(Employee).filter(Employee.email == email).first()
+    
+    # 2. Verify password
+    if not user or not user.password_hash or not verify_password(password, user.password_hash):
+        return templates.TemplateResponse("login.html", {
+            "request": request, 
+            "error": "Invalid email or password"
+        })
 
-    print(f"--- /auth/callback ---") # Keep logging
-    print(f"User Info received from Azure: {user_info}")
-    print(f"Extracted Email: {email}")
-    print(f"Extracted Name: {name}")
+    # 3. Set Session
+    request.session["user"] = {"email": user.email, "name": user.display_name}
 
-    if not email:
-        print("ERROR: No email found in token/claims") # Add logging
-        return PlainTextResponse("No email found in token/claims", status_code=400)
-
-    # 4. Optional: Check if the user's domain is allowed
-    if settings.allowed_domains:
-        domain = email.split("@")[-1].lower()
-        if domain not in [d.lower() for d in settings.allowed_domains]:
-            print(f"Unauthorized domain: {domain}") # Add logging
-            return PlainTextResponse(f"Unauthorized domain: {domain}", status_code=403)
-
-    # 5. Store user information in the session cookie
-    session_data = {"email": email, "name": name}
-    request.session["user"] = session_data
-    print(f"Data saved to session: {session_data}") # Keep logging
-
-    # 6. Upsert (update or insert) the employee record in our database
-    try:
-        emp = db.query(Employee).filter(Employee.email == email).first()
-        if not emp:
-            print(f"Creating new Employee record for: {email}") # Add logging
-            emp = Employee(email=email, display_name=name)
-            db.add(emp)
-        else:
-            if emp.display_name != name: # Only update if name changed
-                 print(f"Updating display name for: {email}") # Add logging
-                 emp.display_name = name
-            else:
-                 print(f"Found existing Employee record for: {email}") # Add logging
-
-        db.commit() # Commit employee changes
-    except Exception as e:
-        db.rollback()
-        print(f"ERROR during Employee upsert: {e}") # Add logging
-        # Decide how to handle - maybe still redirect? Or show error?
-        # For now, let's still try to redirect, but log the error.
-
-    # 7. Redirect back to the originally intended /scan page
-    # Retrieve the site stored before the login redirect
+    # 4. Redirect
+    # If we stored an intended site in the session (from /scan redirection), use it
     intended_site = request.session.pop("intended_site", settings.default_site)
-    redirect_url = f"/scan?site={intended_site}"
-    print(f"Login successful, redirecting back to: {redirect_url}") # Keep logging
-    return RedirectResponse(url=redirect_url)
+    return RedirectResponse(url=f"/scan?site={intended_site}", status_code=303)
 
 @app.get("/checkin-success", response_class=HTMLResponse)
 def checkin_success(request: Request):
     return templates.TemplateResponse("checkin_success.html", {"request": request})
 
 @app.get("/logout")
+@app.get("/logout")
 def logout(request: Request):
-    """Clears the user's session cookie."""
     request.session.clear()
     return RedirectResponse(url="/", status_code=303)
-
-# ------------------------
-
-#@app.get("/checkin-success", response_class=HTMLResponse)
-#def checkin_success(request: Request):
-#    """Displays a simple success message after check-in."""
-#    return templates.TemplateResponse("checkin_success.html", {"request": request})
 
 @app.get("/already-checked-in", response_class=HTMLResponse)
 def already_checked_in(request: Request):
@@ -319,6 +279,7 @@ def admin_add_record(
     request: Request,
     user_name: str = Form(...),
     visit_reason: str = Form(...),
+    business_line: str = Form(None),
     site: str = Form(...),
     custom_date: str = Form(...), # Expecting YYYY-MM-DDTHH:MM
     db: Session = Depends(get_db)
@@ -338,6 +299,7 @@ def admin_add_record(
         new_rec = Attendance(
             user_name=user_name,
             visit_reason=visit_reason,
+            business_line=business_line,
             site=site,
             timestamp_utc=dt_utc,
             local_date=dt_est.strftime("%Y-%m-%d"),
@@ -358,6 +320,7 @@ def admin_edit_record(
     record_id: int = Form(...),
     user_name: str = Form(...),
     visit_reason: str = Form(...),
+    business_line: str = Form(None),
     site: str = Form(...),
     custom_date: str = Form(...),
     db: Session = Depends(get_db)
@@ -369,6 +332,7 @@ def admin_edit_record(
     if rec:
         rec.user_name = user_name
         rec.visit_reason = visit_reason
+        rec.business_line = business_line
         rec.site = site
 
         # --- UPDATE TIMESTAMP ---

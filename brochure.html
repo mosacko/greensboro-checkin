@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WSP Check-in Brochure</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Open Sans', Helvetica, Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            /* FORCE PRINT COLORS */
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        /* Print Settings */
+        @media print {
+            @page {
+                margin: 0;
+                size: letter;
+            }
+            body {
+                background-color: white;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .page {
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                height: 100%;
+                border: none;
+            }
+        }
+
+        .page {
+            background: white;
+            width: 8.5in;
+            height: 11in;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: black !important; /* Force Black */
+            height: 100px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .header img {
+            height: 60px;
+            width: auto;
+        }
+
+        .logo-section {
+            padding: 30px 50px 10px 50px;
+            text-align: center;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #CE0037;
+            display: inline-block;
+            padding-bottom: 10px;
+            margin-bottom: 5px;
+        }
+
+        .sub-logo-text {
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 50px;
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: 800;
+            color: #000;
+            margin-bottom: 10px;
+            text-align: center;
+            line-height: 1.1;
+        }
+
+        h2 {
+            font-size: 28px;
+            font-weight: 400;
+            color: #CE0037;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .qr-container {
+            border: 4px solid #000;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 40px;
+            background: white;
+            /* Flex to center the image */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* CHANGED: Style the IMG tag, not a background image */
+        .qr-img {
+            width: 250px;
+            height: 250px;
+            display: block;
+        }
+
+        .instructions {
+            width: 100%;
+            max-width: 500px;
+            background-color: #f9f9f9 !important; /* Force gray background */
+            padding: 25px;
+            border-left: 6px solid #CE0037 !important; /* Force Red border */
+            border-radius: 4px;
+        }
+
+        .step {
+            display: flex;
+            margin-bottom: 15px;
+            align-items: flex-start;
+        }
+
+        .step-number {
+            background-color: #000 !important; /* Force Black circle */
+            color: white !important;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            margin-right: 15px;
+            margin-top: 3px;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            font-size: 16px;
+            color: #444;
+            line-height: 1.5;
+        }
+
+        .footer {
+            background-color: #222 !important; /* Force Dark Gray */
+            color: white !important;
+            padding: 30px 50px;
+            text-align: center;
+            font-size: 14px;
+            /* Ensure footer stays at bottom on print */
+            -webkit-print-color-adjust: exact; 
+        }
+
+        .wifi-box {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #444;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="page">
+        <div class="header">
+            <img src="wsp-logo.png" alt="WSP Logo"> 
+        </div>
+
+        <div class="logo-section">
+            <div class="logo-text">CHECK-IN</div>
+            <div class="sub-logo-text">Greenville Office</div>
+        </div>
+
+        <div class="main-content">
+            <h1>WELCOME</h1>
+            <h2>Please Check In Upon Arrival</h2>
+
+            <div class="qr-container">
+                <img src="qrcode.png" alt="Scan QR Code" class="qr-img">
+            </div>
+
+            <div class="instructions">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-text">Open your <strong>Camera App</strong> and scan the QR code above.</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-text">
+                        Select your option:<br>
+                        <span style="color:#CE0037; font-weight:bold;">• Employees:</span> Use your WSP Email.<br>
+                        <span style="color:#666; font-weight:bold;">• Visitors:</span> Select "Visitor Check-in".
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-text">You are done when you see the <strong>Success</strong> screen.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Having trouble scanning? Please visit:</p>
+            <p style="font-size: 18px; margin: 5px 0; letter-spacing: 1px;">attendance.sebridgeinspection.com</p>
+            
+            <div class="wifi-box">
+                Guest Wi-Fi: <strong>WSP-GUEST</strong>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -7,6 +7,7 @@ class Employee(Base):
     id = Column(Integer, primary_key=True)
     email = Column(String(320), unique=True, index=True, nullable=False)
     display_name = Column(String(200), nullable=False)
+    password_hash = Column(String(128), nullable=True) # Nullable for now to avoid migration errors on existing data
     status = Column(String(20), default="active", nullable=False)
     department = Column(String(100))
     external_tenant = Column(String(120))

@@ -3,34 +3,26 @@
 {% block title %}Home - WSP Check-in Tracker{% endblock %}
 
 {% block content %}
-<style>
-.btn-primary {
-    background-color: #f8423a;
-    border-color: #f8423a;
-}
-
-.btn-primary:hover {
-    background-color: #a8002d;
-}
-
-</style>
-
 <div class="px-4 py-5 my-5 text-center">
     <h1 class="display-5 fw-bold">WSP Check-in Tracker</h1>
     <div class="col-lg-6 mx-auto">
-        <p class="lead mb-4">Select your check-in type.</p>
-        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-            {# --- Button 1: Employee (SSO) --- #}
-            <a href="/scan?site={{ sites.get('greensboro', 'greensboro') }}" class="btn btn-primary btn-lg px-4 gap-3">
-                Employee Check-in
+        <p class="lead mb-4">Please select an option:</p>
+        
+        <div class="d-grid gap-3 col-md-8 mx-auto">
+            {# Option 1: Login (Credentials) #}
+            <a href="/scan?site={{ sites.get('greenville', 'greenville') }}" class="btn btn-primary btn-lg">
+                Check-in with Credentials
             </a>
-            
-            {# --- Button 2: Visitor (Manual) --- #}
-            <a href="/visitor?site={{ sites.get('greensboro', 'greensboro') }}" class="btn btn-outline-secondary btn-lg px-4">
-                Visitor Check-in
+
+            {# Option 2: Visitor (Manual) #}
+            <a href="/visitor?site={{ sites.get('greenville', 'greenville') }}" class="btn btn-secondary btn-lg">
+                Guest / Visitor Check-in
             </a>
         </div>
-         {# --- REMOVED ADMIN LINK --- #}
+
+        <div class="mt-4">
+            <p>New employee? <a href="/register">Register here</a></p>
+        </div>
     </div>
 </div>
 {% endblock %}

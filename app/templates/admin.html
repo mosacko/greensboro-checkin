@@ -448,29 +448,35 @@
 
     // Handle Edit Modal Population
     const editModal = document.getElementById('editRecordModal');
-    editModal.addEventListener('show.bs.modal', function (event) {
-        // Button that triggered the modal
-        const button = event.relatedTarget;
-        
-        // Extract info from data-* attributes
-        const id = button.getAttribute('data-id');
-        const name = button.getAttribute('data-name');
-        const reason = button.getAttribute('data-reason');
-        const site = button.getAttribute('data-site');
-        const timestamp = button.getAttribute('data-timestamp');
+    if (editModal) { // Check if modal exists first
+        editModal.addEventListener('show.bs.modal', function (event) {
+            // Button that triggered the modal
+            const button = event.relatedTarget;
+            
+            // Extract info from data-* attributes
+            const id = button.getAttribute('data-id');
+            const name = button.getAttribute('data-name');
+            const reason = button.getAttribute('data-reason');
+            const site = button.getAttribute('data-site');
+            const timestamp = button.getAttribute('data-timestamp');
+            const businessLine = button.getAttribute('data-business-line'); // Don't forget business line!
 
-        // Update the modal's content.
-        document.getElementById('edit_record_id').value = id;
-        document.getElementById('edit_user_name').value = name;
-        document.getElementById('edit_site').value = site;
-        document.getElementById('edit_custom_date').value = timestamp;
-        
-        // Select the correct reason if it matches one of our options, otherwise 'Other'
-        const reasonSelect = document.getElementById('edit_visit_reason');
-        reasonSelect.value = reason;
-        if (reasonSelect.value === "") reasonSelect.value = "Other"; 
-    });
+            // Update the modal's content.
+            document.getElementById('edit_record_id').value = id;
+            document.getElementById('edit_user_name').value = name;
+            document.getElementById('edit_site').value = site;
+            document.getElementById('edit_custom_date').value = timestamp;
+            
+            // Select reason
+            const reasonSelect = document.getElementById('edit_visit_reason');
+            reasonSelect.value = reason || "Other";
 
+            //Select Business Line
+            const blSelect = document.getElementById('edit_business_line');
+            if(blSelect) blSelect.value = businessLine || "N/A";
+        });
+    }
+        
     // --- Function to fetch and display Monthly Summary ---
     async function updateMonthlySummary(date) {
         // Format date as YYYY-MM
